@@ -5,6 +5,8 @@ export const ENDPOINTS = {
   },
   USER: {
     GET_LIST: "/api/v1/user/",
-    // GET_DETAIL: (user_id) => `/user/${user_id}`,
   },
+  GACHA: {
+    GET_LIST: "/api/v1/model-gacha/",
+  }
 };

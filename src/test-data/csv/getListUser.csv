@@ -1,0 +1,129 @@
+﻿tcId,testName,page,items_per_page,sort_field,sort_order,keyword,user_status,agency_status,streamer_type,can_livestream,expectedStatus
+TC001,All params valid (cURL mẫu),1,1,id,desc,nga,1,0,1,true,200
+TC002,No params at all,,,,,,,,,,200
+TC003,Only page + items_per_page,1,1,,,,,,,,200
+TC004,Only keyword,,,,,nga,,,,,200
+TC005,All params empty value,<empty>,<empty>,<empty>,<empty>,<empty>,<empty>,<empty>,<empty>,<empty>,422
+TC006,page missing,,1,id,desc,nga,1,0,1,true,200
+TC007,page empty value,<empty>,1,id,desc,nga,1,0,1,true,422
+TC008,page = null,null,1,id,desc,nga,1,0,1,true,422
+TC009,page = 1 (first page),1,10,id,desc,nga,1,0,1,true,200
+TC010,page = 2 (second page),2,10,id,desc,nga,1,0,1,true,200
+TC011,page = 0,0,1,id,desc,nga,1,0,1,true,422
+TC012,page is negative,-1,1,id,desc,nga,1,0,1,true,422
+TC013,page is non-integer (1.5),1.5,1,id,desc,nga,1,0,1,true,422
+TC014,page is text (abc),abc,1,id,desc,nga,1,0,1,true,422
+TC015,page contains special characters,@#$,1,id,desc,nga,1,0,1,true,422
+TC016,page overflows integer,99999999999999999999,1,id,desc,nga,1,0,1,true,422
+TC017,page > total pages,99999,1,id,desc,nga,1,0,1,true,200
+TC018,items_per_page missing,1,,id,desc,nga,1,0,1,true,200
+TC019,items_per_page empty value,1,<empty>,id,desc,nga,1,0,1,true,422
+TC020,items_per_page = null,1,null,id,desc,nga,1,0,1,true,422
+TC021,items_per_page = 1 (returns exactly 1 record),1,1,id,desc,nga,1,0,1,true,200
+TC022,items_per_page = 10 (returns up to 10 records),1,10,id,desc,nga,1,0,1,true,200
+TC023,items_per_page = 100 (max allowed),1,100,id,desc,nga,1,0,1,true,200
+TC024,items_per_page = 0,1,0,id,desc,nga,1,0,1,true,422
+TC025,items_per_page is negative,1,-1,id,desc,nga,1,0,1,true,422
+TC026,items_per_page is non-integer (1.5),1,1.5,id,desc,nga,1,0,1,true,422
+TC027,items_per_page is text (abc),1,abc,id,desc,nga,1,0,1,true,422
+TC028,items_per_page contains special characters,1,@#$,id,desc,nga,1,0,1,true,422
+TC029,items_per_page exceeds max (101),1,101,id,desc,nga,1,0,1,true,422
+TC030,items_per_page exceeds max (1000),1,1000,id,desc,nga,1,0,1,true,422
+TC031,items_per_page > total records (within max),1,100,id,desc,,,,,,200
+TC032,sort_field missing,1,1,,desc,nga,1,0,1,true,200
+TC033,sort_field empty value,1,1,<empty>,desc,nga,1,0,1,true,422
+TC034,sort_field = null,1,1,null,desc,nga,1,0,1,true,422
+TC035,sort_field = id (valid),1,10,id,desc,nga,1,0,1,true,200
+TC036,sort_field = created_at (valid),1,10,created_at,desc,nga,1,0,1,true,200
+TC037,sort_field = display_name (valid),1,10,display_name,desc,nga,1,0,1,true,422
+TC038,sort_field = email (valid),1,10,email,desc,nga,1,0,1,true,422
+TC039,sort_field is not in allowed list (abc),1,1,abc,desc,nga,1,0,1,true,422
+TC040,sort_field is sensitive field (password),1,1,password,desc,nga,1,0,1,true,422
+TC041,sort_field wrong case (ID),1,1,ID,desc,nga,1,0,1,true,200
+TC042,sort_field is numeric,1,1,123,desc,nga,1,0,1,true,422
+TC043,sort_field contains special characters,1,1,@#$,desc,nga,1,0,1,true,422
+TC044,sort_field contains spaces,1,1,i d,desc,nga,1,0,1,true,422
+TC045,sort_field contains SQL injection,1,1,id;DROP TABLE users;--,desc,nga,1,0,1,true,422
+TC046,sort_order missing,1,1,id,,nga,1,0,1,true,200
+TC047,sort_order empty value,1,1,id,<empty>,nga,1,0,1,true,422
+TC048,sort_order = null,1,1,id,null,nga,1,0,1,true,422
+TC049,sort_order = desc (descending),1,10,id,desc,nga,1,0,1,true,200
+TC050,sort_order = asc (ascending),1,10,id,asc,nga,1,0,1,true,200
+TC051,sort_order wrong case (DESC),1,1,id,DESC,nga,1,0,1,true,200
+TC052,sort_order is invalid (abc),1,1,id,abc,nga,1,0,1,true,422
+TC053,sort_order is numeric,1,1,id,1,nga,1,0,1,true,422
+TC054,sort_order contains special characters,1,1,id,@#$,nga,1,0,1,true,422
+TC055,keyword missing,1,1,id,desc,,1,0,1,true,200
+TC056,keyword empty value,1,1,id,desc,<empty>,1,0,1,true,200
+TC057,keyword = null,1,1,id,desc,null,1,0,1,true,200
+TC058,keyword letters (nga),1,10,id,desc,nga,1,0,1,true,200
+TC059,keyword uppercase (NGA),1,10,id,desc,NGA,1,0,1,true,200
+TC060,keyword capitalized (Nga),1,10,id,desc,Nga,1,0,1,true,200
+TC061,keyword numeric (123),1,10,id,desc,123,1,0,1,true,200
+TC062,keyword special characters,1,10,id,desc,@#$%^&*(),1,0,1,true,200
+TC063,keyword contains space,1,10,id,desc,Nguyen Nga,1,0,1,true,200
+TC064,keyword leading/trailing spaces,1,10,id,desc, nga ,1,0,1,true,200
+TC065,keyword only spaces,1,10,id,desc,   ,1,0,1,true,200
+TC066,keyword Vietnamese diacritics,1,10,id,desc,Nguyễn,1,0,1,true,200
+TC067,keyword email format,1,10,id,desc,admin@admin.com,1,0,1,true,200
+TC068,keyword emoji,1,10,id,desc,😀,1,0,1,true,200
+TC069,keyword no match -> empty list,1,10,id,desc,zzzzzzzz,1,0,1,true,200
+TC070,keyword max length (255 chars),1,10,id,desc,aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa,1,0,1,true,422
+TC071,keyword SQL wildcard %,1,10,id,desc,%,1,0,1,true,200
+TC072,keyword SQL wildcard _,1,10,id,desc,_,1,0,1,true,200
+TC073,keyword SQL injection,1,10,id,desc,' OR '1'='1,1,0,1,true,200
+TC074,keyword XSS payload,1,10,id,desc,<script>alert(1)</script>,1,0,1,true,200
+TC075,keyword exceeds max length (256 chars),1,1,id,desc,aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa,1,0,1,true,422
+TC076,user_status missing,1,1,id,desc,nga,,0,1,true,200
+TC077,user_status empty value,1,1,id,desc,nga,<empty>,0,1,true,422
+TC078,user_status = null,1,1,id,desc,nga,null,0,1,true,422
+TC079,user_status = 0 (valid mapping),1,10,id,desc,nga,0,0,1,true,422
+TC080,user_status = 1 (valid mapping),1,10,id,desc,nga,1,0,1,true,200
+TC081,user_status not in mapping (99),1,1,id,desc,nga,99,0,1,true,422
+TC082,user_status is negative,1,1,id,desc,nga,-1,0,1,true,422
+TC083,user_status is non-integer (1.5),1,1,id,desc,nga,1.5,0,1,true,422
+TC084,user_status is text (abc),1,1,id,desc,nga,abc,0,1,true,422
+TC085,user_status contains special characters,1,1,id,desc,nga,@#$,0,1,true,422
+TC086,user_status overflows integer,1,1,id,desc,nga,99999999999999999999,0,1,true,422
+TC087,agency_status missing,1,1,id,desc,nga,1,,1,true,200
+TC088,agency_status empty value,1,1,id,desc,nga,1,<empty>,1,true,422
+TC089,agency_status = null,1,1,id,desc,nga,1,null,1,true,422
+TC090,agency_status = 0 (valid mapping),1,10,id,desc,nga,1,0,1,true,200
+TC091,agency_status = 1 (valid mapping),1,10,id,desc,nga,1,1,1,true,200
+TC092,agency_status not in mapping (99),1,1,id,desc,nga,1,99,1,true,422
+TC093,agency_status is negative,1,1,id,desc,nga,1,-1,1,true,422
+TC094,agency_status is non-integer (1.5),1,1,id,desc,nga,1,1.5,1,true,422
+TC095,agency_status is text (abc),1,1,id,desc,nga,1,abc,1,true,422
+TC096,agency_status contains special characters,1,1,id,desc,nga,1,@#$,1,true,422
+TC097,agency_status overflows integer,1,1,id,desc,nga,1,99999999999999999999,1,true,422
+TC098,streamer_type missing,1,1,id,desc,nga,1,0,,true,200
+TC099,streamer_type empty value,1,1,id,desc,nga,1,0,<empty>,true,422
+TC100,streamer_type = null,1,1,id,desc,nga,1,0,null,true,422
+TC101,streamer_type = 0 (valid mapping),1,10,id,desc,nga,1,0,0,true,422
+TC102,streamer_type = 1 (valid mapping),1,10,id,desc,nga,1,0,1,true,200
+TC103,streamer_type = 2 (valid mapping),1,10,id,desc,nga,1,0,2,true,200
+TC104,streamer_type not in mapping (99),1,1,id,desc,nga,1,0,99,true,422
+TC105,streamer_type is negative,1,1,id,desc,nga,1,0,-1,true,422
+TC106,streamer_type is non-integer (1.5),1,1,id,desc,nga,1,0,1.5,true,422
+TC107,streamer_type is text (abc),1,1,id,desc,nga,1,0,abc,true,422
+TC108,streamer_type contains special characters,1,1,id,desc,nga,1,0,@#$,true,422
+TC109,streamer_type overflows integer,1,1,id,desc,nga,1,0,99999999999999999999,true,422
+TC110,can_livestream missing,1,1,id,desc,nga,1,0,1,,200
+TC111,can_livestream empty value,1,1,id,desc,nga,1,0,1,<empty>,422
+TC112,can_livestream = null,1,1,id,desc,nga,1,0,1,null,422
+TC113,can_livestream = true (true),1,10,id,desc,nga,1,0,1,true,200
+TC114,can_livestream = false (false),1,10,id,desc,nga,1,0,1,false,200
+TC115,can_livestream wrong case (True),1,1,id,desc,nga,1,0,1,True,200
+TC116,can_livestream = 1,1,1,id,desc,nga,1,0,1,1,200
+TC117,can_livestream = 0,1,1,id,desc,nga,1,0,1,0,200
+TC118,can_livestream = yes,1,1,id,desc,nga,1,0,1,yes,200
+TC119,can_livestream is text (abc),1,1,id,desc,nga,1,0,1,abc,422
+TC120,can_livestream is numeric (99),1,1,id,desc,nga,1,0,1,99,422
+TC121,can_livestream contains special characters,1,1,id,desc,nga,1,0,1,@#$,422
+TC122,keyword + user_status only,1,10,id,desc,nga,1,,,,200
+TC123,"All filters valid, has matching data",1,10,id,desc,nga,1,0,1,true,200
+TC124,"All filters valid, no matching data",1,10,id,desc,zzzzzzzz,1,0,1,true,200
+TC125,Filters + sort asc,1,10,id,asc,nga,1,0,1,true,200
+TC126,Filters + page 2,2,1,id,desc,nga,1,0,1,true,200
+TC127,Valid params + 1 invalid param (user_status=abc),1,1,id,desc,nga,abc,0,1,true,422
+TC128,"Multiple invalid params (page, items_per_page, sort_order)",abc,abc,id,abc,nga,1,0,1,true,422

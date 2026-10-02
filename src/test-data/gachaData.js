@@ -1,0 +1,56 @@
+export const gachaData = {
+  url: "/gachas/avatar-list",
+  dashboardUrl: "/",
+  titles: {
+    dashboard: "ダッシュボード",
+  },
+  labels: {
+    gachaListLink: "ガチャ一覧",
+    toggleSidebar: "Toggle Sidebar",
+    breadcrumbNav: "breadcrumb",
+    homeBreadcrumb: "ホーム",
+    pageHeading: "アバター一覧",
+    modelNameInput: "モデル名",
+    searchButton: "検索",
+    clearButton: "クリア",
+    statusColumn: "ステータス",
+    idColumn: "ID",
+    modelNameColumn: "モデル名",
+    limitedLabel: "期間限定",
+    normalLabel: "ノーマル",
+    initialSettingLabel: "初期設定",
+    nextPage: "次",
+    prevPage: "前",
+    noDataMessage: "一致する結果はありません。",
+  },
+  selectors: {
+    editIcon: "svg, i, .icon-edit",
+  },
+  filterOptions: {
+    status: ["全て", "公開", "非公開"],
+  },
+  testInputs: {
+    validModelName: "TestModel",
+    invalidModelName: "NOT_FOUND_NAME",
+    specialChars: "@#$%^&*()",
+    number: "12345",
+    space: "   ",
+    text: "TestName",
+    spaceWithText: " Test ",
+    textToDelete: "To be deleted",
+  },
+  searchTestCases: [
+    { id: "6", type: "chữ", val: "TestName" },
+    { id: "7", type: "số", val: "12345" },
+    { id: "8", type: "ký tự đặc biệt", val: "@#$%^&*()" },
+    { id: "9", type: "khoảng trắng đầu", val: " Test" },
+    { id: "10", type: "khoảng trắng cuối", val: "Test " },
+    { id: "11", type: "khoảng trắng giữa", val: "Te st" },
+  ],
+  pagination: {
+    summaryLocatorRegex: /全 .* 件中 .* 件を表示/,
+    summaryRegex:
+      /全 (\d{1,3}(?:,\d{3})*) 件中 (\d{1,3}(?:,\d{3})*)〜(\d{1,3}(?:,\d{3})*) 件を表示/,
+    emptyTextRegex: /^$/,
+  },
+};

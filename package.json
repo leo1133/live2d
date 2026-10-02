@@ -12,6 +12,7 @@
     "dotenv": "^18.0.4"
   },
   "scripts": {
+    "codegen:dev": "ENV=dev npx playwright codegen https://suriaru:suriaru@admin-dev.surrealdolls.com/sign-in",
     "test:dev": "ENV=dev npx playwright test",
     "test:stg": "ENV=staging npx playwright test",
     "test:ui:dev": "ENV=dev npx playwright test --ui",

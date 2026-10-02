@@ -10,9 +10,6 @@ import { METHODS, HTTP_STATUS_CODE } from '../../src/utils/constants.js';
  */
 test.describe('API Login Suite: Kiểm tra Server & Security', () => {
 
-  // ------------------------------------------------------------------
-  // 1. HAPPY PATH & AUTHENTICATION ERRORS (Case 19 - 21)
-  // ------------------------------------------------------------------
   test('Case 19: Login thành công với credentials hợp lệ', async ({ authAPI }) => {
     const response = await authAPI.login(loginData.apiCredentials);
     const { status, contentType, body: expectedBody } = loginData.expectedResponses.success;
@@ -61,9 +58,6 @@ test.describe('API Login Suite: Kiểm tra Server & Security', () => {
     expect(body).toEqual(expectedBody);
   });
 
-  // ------------------------------------------------------------------
-  // 2. HTTP METHODS TESTING (Case 22 - 25)
-  // ------------------------------------------------------------------
   const invalidMethods = generateOtherMethodNotChoose(METHODS.POST);
 
   invalidMethods.forEach((method, index) => {
@@ -79,9 +73,6 @@ test.describe('API Login Suite: Kiểm tra Server & Security', () => {
     });
   });
 
-  // ------------------------------------------------------------------
-  // 3. INVALID CONTENT-TYPE & BODY FORMATS (Case 26 - 28)
-  // ------------------------------------------------------------------
   invalidContentTypePayloads.forEach(({ type, payload }, index) => {
     test(`Case ${26 + index}: Login thất bại - Sai Content-Type: ${type}`, async ({ authAPI }) => {
       const response = await authAPI.login(payload, { 'Content-Type': type });
@@ -95,9 +86,6 @@ test.describe('API Login Suite: Kiểm tra Server & Security', () => {
     });
   });
 
-  // ------------------------------------------------------------------
-  // 4. MISSING FIELD VALIDATIONS (Case 29 - 32)
-  // ------------------------------------------------------------------
   test('Case 29: Login thất bại khi thiếu tất cả fields', async ({ authAPI }) => {
     const response = await authAPI.login({});
     const { status, detail } = loginData.expectedResponses.missingAllFields;
@@ -128,9 +116,6 @@ test.describe('API Login Suite: Kiểm tra Server & Security', () => {
     });
   });
 
-  // ------------------------------------------------------------------
-  // 5. FIELD VALUE VALIDATIONS (Case 33 - 41)
-  // ------------------------------------------------------------------
   invalidValueCases.forEach(({ title, override, expectedStatus }, index) => {
     test(`Case ${33 + index}: ${title}`, async ({ authAPI }) => {
       const payload = { ...loginData.apiCredentials, ...override };
@@ -140,9 +125,6 @@ test.describe('API Login Suite: Kiểm tra Server & Security', () => {
     });
   });
 
-  // ------------------------------------------------------------------
-  // 6. HEADER TESTING (Case 42 - 49)
-  // ------------------------------------------------------------------
   headerTestCases.forEach(({ title, headers, expectedStatus }, index) => {
     test(`Case ${42 + index}: Header test - ${title}`, async ({ authAPI }) => {
       const response = await authAPI.login(loginData.apiCredentials, headers);
