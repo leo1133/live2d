@@ -7,37 +7,32 @@ export class UserPage {
   constructor(page) {
     this.page = page;
 
-    // Menu / Navigation elements
     this.userLink = page.getByRole("link", {
       name: userData.labels.menuLink,
       exact: true,
     });
 
-    // Breadcrumb
     this.breadcrumbNav = page.getByRole("navigation", {
       name: userData.labels.breadcrumbNav,
     });
     this.breadcrumbItems = this.breadcrumbNav.locator(
-      'li[data-slot="breadcrumb-item"]',
+      userData.selectors.breadcrumbItem,
     );
     this.breadcrumbHomeLink = this.breadcrumbNav.getByRole("link", {
       name: userData.labels.homeBreadcrumb,
     });
 
-    // Sidebar Toggle
     this.toggleSidebarButton = page.getByRole("button", {
       name: userData.labels.sidebarToggle,
     });
     this.breadcrumbCurrentPage = this.breadcrumbNav.locator(
-      "span[aria-current='page']",
+      userData.selectors.breadcrumbCurrentPage,
     );
 
-    // UI elements on the user page
     this.pageHeading = page.getByRole("heading", {
       name: userData.labels.pageHeading,
     });
 
-    // Filter Controls
     this.searchInput = page.getByPlaceholder(
       userData.labels.searchInputPlaceholder,
     );
@@ -51,7 +46,6 @@ export class UserPage {
       .getByRole("combobox")
       .filter({ hasText: userData.labels.liverTypeFilter });
 
-    // Buttons
     this.searchButton = page.getByRole("button", {
       name: userData.labels.searchButton,
       exact: true,
@@ -61,11 +55,9 @@ export class UserPage {
       exact: true,
     });
 
-    // Table
     this.userTable = page.getByRole("table");
-    this.tableRows = page.locator("table tbody tr");
+    this.tableRows = page.locator(userData.selectors.tableRows);
 
-    // Pagination Controls
     this.paginationFirstPageButton = page.getByRole("button", {
       name: userData.pagination.firstPage,
     });
@@ -87,15 +79,12 @@ export class UserPage {
    * Click menu để chuyển đến trang Quản lý người dùng
    */
   async navigateToUser() {
-    // Tối ưu: Bỏ qua điều hướng nếu đã ở đúng trang để chạy nhanh hơn
     if (this.page.url().includes(userData.url)) {
       return;
     }
 
-    // Chờ nút toggle xuất hiện để đảm bảo giao diện đã load xong
     await this.toggleSidebarButton.waitFor({ state: "visible" });
 
-    // Nếu link menu không visible (sidebar đang đóng), bấm toggle để mở
     if (!(await this.userLink.isVisible())) {
       await this.toggleSidebarButton.click();
     }
@@ -150,7 +139,6 @@ export class UserPage {
     try {
       await this.clearButton.click({ timeout: 2000 });
     } catch (e) {
-      // Ignore if not found (e.g. test failed at login and we are not on the page)
     }
   }
 }

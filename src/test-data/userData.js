@@ -1,8 +1,13 @@
 export const userData = {
-  url: "https://admin-dev.surrealdolls.com/users",
-  dashboardUrl: "https://admin-dev.surrealdolls.com/",
+  url: `${process.env.UI_BASE_URL}/users`,
+  dashboardUrl: `${process.env.UI_BASE_URL}/`,
   titles: {
     dashboard: "ダッシュボード",
+  },
+  selectors: {
+    breadcrumbItem: 'li[data-slot="breadcrumb-item"]',
+    breadcrumbCurrentPage: "span[aria-current='page']",
+    tableRows: "table tbody tr",
   },
   labels: {
     menuLink: "利用者管理",
@@ -35,6 +40,7 @@ export const userData = {
     nextPage: "次のページへ",
     lastPage: "最後のページへ",
     summaryText: "件を表示",
+    summaryRegex: /全\s*([\d,]+)\s*件中\s*([\d,]+)〜([\d,]+)\s*件を表示/,
   },
   tableHeaders: [
     "ユーザーID",
@@ -47,9 +53,11 @@ export const userData = {
     "ファミリアメンバー",
     "いいね数",
     "ポイント売上",
+    "+4",
     "ファミリア売上",
     "合計売上",
     "合計配信時間",
+    "+6",
     "ステータス",
     "所属状態",
     "配信権限",
@@ -58,7 +66,18 @@ export const userData = {
     "最終配信日時",
     "本人確認状況",
     "OCRデータ",
+    "操作",
   ],
+  tableExpandGroups: {
+    group1: {
+      toggleBtn: "+4",
+      columns: ["2ショット", "ギフト", "ウィスパー", "エール"],
+    },
+    group2: {
+      toggleBtn: "+6",
+      columns: ["通常配信時間", "OBS時間"],
+    },
+  },
   searchTestCases: [
     { desc: "để trống", input: "", expectData: true },
     { desc: "chữ hoa", input: "ADMIN", expectData: true },
@@ -77,5 +96,7 @@ export const userData = {
   ],
   testKeywords: {
     validAdmin: "admin",
+    notFoundForPagination: "NOT_FOUND_NO_DATA_9999",
+    notFoundForTable: "NOT_FOUND_FOR_TABLE_TEST_999",
   },
 };

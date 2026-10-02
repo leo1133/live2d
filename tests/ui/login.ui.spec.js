@@ -12,18 +12,12 @@ test.describe('UI Login Suite: Kiểm tra thao tác giao diện DOM', () => {
     await loginPage.goto();
   });
 
-  // ------------------------------------------------------------------
-  // 1. HIỂN THỊ FORM
-  // ------------------------------------------------------------------
   test('Case 1: Test hiển thị của form login', async ({ loginPage }) => {
     await expect(loginPage.accountInput).toBeVisible();
     await expect(loginPage.passwordInput).toBeVisible();
     await expect(loginPage.loginButton).toBeVisible();
   });
 
-  // ------------------------------------------------------------------
-  // 2. VALIDATE Ô EMAIL (UI - toHaveValue)
-  // ------------------------------------------------------------------
   test('Case 2: Ô Email cho phép nhập chữ cái', async ({ loginPage }) => {
     await loginPage.accountInput.fill(loginData.validateEmail.alphabet);
     await expect(loginPage.accountInput).toHaveValue(loginData.validateEmail.alphabet);
@@ -74,9 +68,6 @@ test.describe('UI Login Suite: Kiểm tra thao tác giao diện DOM', () => {
     await expect(loginPage.accountInput).toHaveValue(loginData.validateEmail.invalidDomain);
   });
 
-  // ------------------------------------------------------------------
-  // 3. VALIDATE Ô PASSWORD (UI - toHaveValue)
-  // ------------------------------------------------------------------
   test('Case 12: Ô Password cho phép nhập chữ cái', async ({ loginPage }) => {
     await loginPage.passwordInput.fill(loginData.validatePassword.alphabet);
     await expect(loginPage.passwordInput).toHaveValue(loginData.validatePassword.alphabet);
@@ -107,14 +98,10 @@ test.describe('UI Login Suite: Kiểm tra thao tác giao diện DOM', () => {
     await expect(loginPage.passwordInput).toHaveValue(loginData.validatePassword.longPassword);
   });
 
-  // ------------------------------------------------------------------
-  // 4. KIỂM TRA FORGOT PASSWORD LINK (UI)
-  // ------------------------------------------------------------------
   test('Case 18: Kiểm tra khi click hyperlink Forgot password', async ({ page, loginPage }) => {
     await expect(loginPage.forgotPasswordLink).toBeVisible();
     await loginPage.forgotPasswordLink.click();
     
-    // Kiểm tra đã redirect sang màn Forgot password chưa (bằng title)
     await expect(page).toHaveTitle(loginData.forgotPasswordScreen.title);
   });
 

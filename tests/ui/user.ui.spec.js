@@ -4,6 +4,8 @@ import { LoginPage } from "../../src/pages/LoginPage.js";
 import { loginData } from "../../src/test-data/loginData.js";
 import { userData } from "../../src/test-data/userData.js";
 
+let tcIndex = 1;
+
 test.describe.serial("UI User Management Suite", () => {
   let sharedPage;
   let userPage;
@@ -14,7 +16,7 @@ test.describe.serial("UI User Management Suite", () => {
       httpCredentials: process.env.BASIC_AUTH_USER
         ? {
             username: process.env.BASIC_AUTH_USER,
-            password: process.env.BASIC_AUTH_PASS || "",
+            password: process.env.BASIC_AUTH_PASS,
           }
         : undefined,
     });
@@ -35,7 +37,7 @@ test.describe.serial("UI User Management Suite", () => {
   });
 
   test.describe("1. Truy cập màn hình", () => {
-    test("TC1.1 - Xác minh điều hướng thành công vào màn hình Quản lý Người dùng (利用者管理)", async () => {
+    test(`TC${tcIndex++} - Xác minh điều hướng thành công vào màn hình Quản lý Người dùng (利用者管理)`, async () => {
       await expect(sharedPage).toHaveURL(userData.dashboardUrl);
       await userPage.navigateToUser();
       await expect(sharedPage).toHaveURL(userData.url);
@@ -46,19 +48,17 @@ test.describe.serial("UI User Management Suite", () => {
       await expect(userPage.userTable).toBeVisible();
     });
 
-    test("TC1.2 - Kiểm tra chức năng đóng mở Sidebar (Toggle Sidebar)", async () => {
+    test(`TC${tcIndex++} - Kiểm tra chức năng đóng mở Sidebar (Toggle Sidebar)`, async () => {
       await userPage.navigateToUser();
 
       await expect(userPage.toggleSidebarButton).toBeVisible();
-      // Đóng sidebar
       await userPage.toggleSidebar();
-      // Mở lại sidebar
       await userPage.toggleSidebar();
     });
   });
 
   test.describe("2. Breadcrumb", () => {
-    test("TC2.1 - Kiểm tra và thao tác với Breadcrumb", async () => {
+    test(`TC${tcIndex++} - Kiểm tra và thao tác với Breadcrumb`, async () => {
       await userPage.navigateToUser();
       await expect(sharedPage).toHaveURL(userData.url);
 
@@ -82,13 +82,10 @@ test.describe.serial("UI User Management Suite", () => {
       await userPage.clearFilters();
     });
 
-    // 1. Phân nhóm Searchbox (Dữ liệu đã được chuyển sang userData.js)
-    let searchboxIndex = 1;
     for (const tc of userData.searchTestCases) {
-      test(`TC3.1.${searchboxIndex} - Searchbox: ${tc.desc}`, async () => {
+      test(`TC${tcIndex++} - Searchbox: ${tc.desc}`, async () => {
         await userPage.searchUsers({ usernameOrId: tc.input });
         if (tc.expectData) {
-          // Bảng phải hiển thị ít nhất 1 dòng
           await expect(userPage.tableRows.first()).toBeVisible();
         } else {
           const noDataCell = sharedPage
@@ -98,12 +95,9 @@ test.describe.serial("UI User Management Suite", () => {
           await expect(noDataCell).toBeVisible();
         }
       });
-      searchboxIndex++;
     }
 
-    // 2. Phân nhóm Pulldown
-    test("TC3.2.1 - Pulldown: Kiểm tra hiển thị mặc định và danh sách dữ liệu", async () => {
-      // Check hiển thị mặc định
+    test(`TC${tcIndex++} - Pulldown: Kiểm tra hiển thị mặc định và danh sách dữ liệu`, async () => {
       await expect(userPage.statusFilterDropdown).toHaveText(
         userData.filterOptions.status[0],
       );
@@ -115,15 +109,14 @@ test.describe.serial("UI User Management Suite", () => {
       );
     });
 
-    test("TC3.2.2 - Pulldown: Chọn 1 giá trị và thực hiện tìm kiếm (Có dữ liệu)", async () => {
+    test(`TC${tcIndex++} - Pulldown: Chọn 1 giá trị và thực hiện tìm kiếm (Có dữ liệu)`, async () => {
       await userPage.searchUsers({
         statusOption: userData.filterOptions.status[1],
       });
       await expect(userPage.tableRows.first()).toBeVisible();
     });
 
-    test("TC3.2.3 - Pulldown: Chọn giá trị dẫn đến không có dữ liệu", async () => {
-      // Kết hợp thêm ID ảo để đảm bảo luôn ra kết quả rỗng ở mọi môi trường, tránh bị timeout do phụ thuộc vào data thật
+    test(`TC${tcIndex++} - Pulldown: Chọn giá trị dẫn đến không có dữ liệu`, async () => {
       await userPage.searchUsers({
         usernameOrId: "NOT_FOUND_9999",
         statusOption: userData.filterOptions.status[3],
@@ -135,8 +128,7 @@ test.describe.serial("UI User Management Suite", () => {
       await expect(noDataCell).toBeVisible();
     });
 
-    // 3. Phân nhóm Kết hợp (Searchbox + Pulldown)
-    test("TC3.3.1 - Kết hợp: Searchbox + Nhiều Pulldown cùng lúc (Có dữ liệu)", async () => {
+    test(`TC${tcIndex++} - Kết hợp: Searchbox + Nhiều Pulldown cùng lúc (Có dữ liệu)`, async () => {
       await userPage.searchUsers({
         usernameOrId: userData.testKeywords.validAdmin,
         statusOption: userData.filterOptions.status[1],
@@ -146,10 +138,9 @@ test.describe.serial("UI User Management Suite", () => {
       await expect(userPage.tableRows.first()).toBeVisible();
     });
 
-    test("TC3.3.2 - Kết hợp: Searchbox + Pulldown (Không có dữ liệu)", async () => {
-      // Kết hợp từ khoá không tồn tại + bộ lọc để kích hoạt trạng thái No Data
+    test(`TC${tcIndex++} - Kết hợp: Searchbox + Pulldown (Không có dữ liệu)`, async () => {
       await userPage.searchUsers({
-        usernameOrId: "NOT_FOUND_999",
+        usernameOrId: userData.searchTestCases[9].input,
         statusOption: userData.filterOptions.status[1],
       });
       const noDataCell = sharedPage
@@ -159,9 +150,7 @@ test.describe.serial("UI User Management Suite", () => {
       await expect(noDataCell).toBeVisible();
     });
 
-    // 4. Phân nhóm Nút Clear (Xoá bộ lọc)
-    test("TC3.4.1 - Clear: Không nhập gì và bấm nút", async () => {
-      // Xác nhận form ban đầu đang trống và các pulldown đang ở mặc định
+    test(`TC${tcIndex++} - Clear: Không nhập gì và bấm nút`, async () => {
       await expect(userPage.searchInput).toBeEmpty();
       await expect(userPage.statusFilterDropdown).toHaveText(
         userData.filterOptions.status[0],
@@ -173,10 +162,8 @@ test.describe.serial("UI User Management Suite", () => {
         userData.filterOptions.liverType[0],
       );
 
-      // Bấm nút Clear
       await userPage.clearFilters();
 
-      // Trạng thái tất cả các trường vẫn giữ nguyên ở mức mặc định
       await expect(userPage.searchInput).toBeEmpty();
       await expect(userPage.statusFilterDropdown).toHaveText(
         userData.filterOptions.status[0],
@@ -189,8 +176,7 @@ test.describe.serial("UI User Management Suite", () => {
       );
     });
 
-    test("TC3.4.2 - Clear: Có nhập dữ liệu ở tất cả các trường và bấm nút", async () => {
-      // Nhập liệu vào cả Searchbox và các Pulldown (dùng hàm tiện ích)
+    test(`TC${tcIndex++} - Clear: Có nhập dữ liệu ở tất cả các trường và bấm nút`, async () => {
       await userPage.searchUsers({
         usernameOrId: userData.testKeywords.validAdmin,
         statusOption: userData.filterOptions.status[1],
@@ -198,10 +184,8 @@ test.describe.serial("UI User Management Suite", () => {
         liverTypeOption: userData.filterOptions.liverType[1],
       });
 
-      // Bấm nút Clear
       await userPage.clearFilters();
 
-      // Xác nhận MỌI THỨ đều trở về mặc định
       await expect(userPage.searchInput).toBeEmpty();
       await expect(userPage.statusFilterDropdown).toHaveText(
         userData.filterOptions.status[0],
@@ -243,150 +227,377 @@ test.describe.serial("UI User Management Suite", () => {
       });
 
       test.afterEach(async () => {
-        // Đảm bảo đóng dropdown đang mở (nếu có) bằng phím Escape để tránh UI overlay che mất các nút khác
         await sharedPage.keyboard.press("Escape");
-        // Chờ một chút cho animation đóng hoàn tất (nếu có)
         await sharedPage.waitForTimeout(300);
         await userPage.clearFilters();
       });
 
-      test("1 - Kiểm tra UI hiển thị", async () => {
-        // 1. Thực hiện kiểm tra UI của dropdown
-        // Hiển thị UI giống design (kiểm tra visible)
+      test(`TC${tcIndex++} - Kiểm tra UI hiển thị`, async () => {
         await expect(targetDropdown).toBeVisible();
-        // Enable cho phép người dùng click
         await expect(targetDropdown).toBeEnabled();
       });
 
-      test("2 - Kiểm tra giá trị mặc định", async () => {
-        // 1. Hệ thống hiển thị giá trị mặc định
+      test(`TC${tcIndex++} - Kiểm tra giá trị mặc định`, async () => {
         await expect(targetDropdown).toHaveText(dropdownOptions[0]);
       });
 
-      test("3 - Kiểm tra list dữ liệu", async () => {
-        // 1. Click mở dropdown
+      test(`TC${tcIndex++} - Kiểm tra list dữ liệu`, async () => {
         await targetDropdown.click();
 
-        // Thực tế trên UI, giá trị mặc định đầu tiên (vd "All") có thể không nằm trong list options để chọn
         const expectedOptions = dropdownOptions.slice(1);
 
-        // 2. Thực hiện kiểm tra list dữ liệu trong dropdown
         const options = sharedPage.getByRole("option");
         await expect(options).toHaveCount(expectedOptions.length);
         await expect(options).toHaveText(expectedOptions);
       });
 
-      test("4 - Kiểm tra scroll trong list dữ liệu", async () => {
-        // 1. Click mở dropdown
+      test(`TC${tcIndex++} - Kiểm tra scroll trong list dữ liệu`, async () => {
         await targetDropdown.click();
 
         const expectedOptions = dropdownOptions.slice(1);
 
-        // 2. Thực hiện scroll list dữ liệu (chờ và scroll tới item cuối để xác nhận không mất dữ liệu)
         const options = sharedPage.getByRole("option");
         const lastOption = options.nth(expectedOptions.length - 1);
         await lastOption.scrollIntoViewIfNeeded();
         await expect(lastOption).toBeVisible();
       });
 
-      test("5 - Kiểm tra hover vào từng option", async () => {
-        // 1. Click mở dropdown
+      test(`TC${tcIndex++} - Kiểm tra hover vào từng option`, async () => {
         await targetDropdown.click();
 
         const expectedOptions = dropdownOptions.slice(1);
 
-        // 2. Thực hiện hover vào từng option
         const options = sharedPage.getByRole("option");
         for (let i = 0; i < expectedOptions.length; i++) {
           const option = options.nth(i);
           await option.scrollIntoViewIfNeeded();
           await option.hover();
-          // Option không bị ẩn/mất
           await expect(option).toBeVisible();
         }
       });
 
-      test("6 - Kiểm tra khi chọn data", async () => {
-        // 1. Thực hiện click mở dropdown
+      test(`TC${tcIndex++} - Kiểm tra khi chọn data`, async () => {
         await targetDropdown.click();
 
-        // 2. Chọn 1 option
         const targetOptionText = dropdownOptions[1];
         await sharedPage
           .getByRole("option", { name: targetOptionText })
           .click();
 
-        // Giá trị hiển thị đúng
         await expect(targetDropdown).toHaveText(targetOptionText);
 
-        // Dropdown đóng lại
         await expect(sharedPage.getByRole("listbox")).toBeHidden();
       });
 
-      test("7.1 - Kiểm tra khi chọn lại option khác", async () => {
-        // 1. Thực hiện chọn option A thành công
+      test(`TC${tcIndex++} - Kiểm tra khi chọn lại option khác`, async () => {
         await targetDropdown.click();
         await sharedPage
           .getByRole("option", { name: dropdownOptions[1] })
           .click();
         await expect(targetDropdown).toHaveText(dropdownOptions[1]);
 
-        // 2. Mở lại dropdown thực hiện chọn option B
         await targetDropdown.click();
         await sharedPage
           .getByRole("option", { name: dropdownOptions[2] })
           .click();
 
-        // Value cập nhật đúng, Không bị giữ giá trị cũ
         await expect(targetDropdown).toHaveText(dropdownOptions[2]);
       });
 
-      test("7.2 - Kiểm tra giá trị hiển thị sau khi re-load", async () => {
-        // 1. Thực hiện chọn option bất kỳ thành công
+      test(`TC${tcIndex++} - Kiểm tra giá trị hiển thị sau khi re-load`, async () => {
         await targetDropdown.click();
         await sharedPage
           .getByRole("option", { name: dropdownOptions[1] })
           .click();
         await expect(targetDropdown).toHaveText(dropdownOptions[1]);
 
-        // 2. Click F5 hoặc button re-load trên trình duyệt
         await sharedPage.reload();
         await sharedPage.waitForLoadState("domcontentloaded");
 
-        // Lấy lại locator sau khi reload
         targetDropdown = getLocator(userPage);
 
-        // Hệ thống hiển thị giá trị mặc định
         await expect(targetDropdown).toHaveText(dropdownOptions[0]);
       });
 
-      test("8 - Kiểm tra khi click ra ngoài droplist", async () => {
-        // 1. Thực hiện click mở dropdown
+      test(`TC${tcIndex++} - Kiểm tra khi click ra ngoài pulldown`, async () => {
         await targetDropdown.click();
         await expect(sharedPage.getByRole("listbox")).toBeVisible();
 
-        // 2. Click ra ngoài vùng dropdown bằng toạ độ chuột
-        // (để đảm bảo không bị dính bất kỳ locator nào có thể bị ẩn khi dropdown mở)
         await sharedPage.mouse.click(0, 0);
 
-        // Hệ thống thực hiện đóng Dropdown
         await expect(sharedPage.getByRole("listbox")).toBeHidden();
       });
 
-      test("9 - Kiểm tra khi điều hướng bằng bàn phím", async () => {
-        // 1. Thực hiện click mở dropdown
+      test(`TC${tcIndex++} - Kiểm tra khi điều hướng bằng bàn phím`, async () => {
         await targetDropdown.click();
 
-        // 2. Dùng ↑ ↓ trên bàn phím và Enter
         await sharedPage.keyboard.press("ArrowDown");
         await sharedPage.keyboard.press("Enter");
 
-        // Di chuyển được và chọn giá trị khác mặc định (Tuỳ thuộc vào focus hiện tại)
         const currentText = await targetDropdown.innerText();
-        // Chắc chắn là dropdown đã đóng và chọn 1 giá trị
         await expect(sharedPage.getByRole("listbox")).toBeHidden();
         expect(currentText).toBeTruthy();
       });
+    });
+  });
+
+  test.describe("5. Phân trang", () => {
+    test.beforeEach(async () => {
+      await userPage.navigateToUser();
+      await userPage.clearFilters();
+      await sharedPage.waitForTimeout(500);
+    });
+
+    test(`TC${tcIndex++} - Kiểm tra hiển thị UI Pagination`, async () => {
+      await expect(userPage.paginationNextPageButton).toBeVisible();
+      await expect(userPage.paginationLastPageButton).toBeVisible();
+
+      await expect(userPage.paginationFirstPageButton).toBeDisabled();
+      await expect(userPage.paginationPrevPageButton).toBeDisabled();
+    });
+
+    test(`TC${tcIndex++} - Kiểm tra hiển thị khi đang focus ở trang bất kì`, async () => {
+      const activePageBtn = sharedPage.getByRole("button", {
+        name: "1",
+        exact: true,
+      });
+      if (await activePageBtn.isVisible()) {
+        await expect(activePageBtn).toHaveAttribute("aria-current", "page");
+      }
+    });
+
+    test(`TC${tcIndex++} - Kiểm tra phân trang với các mốc dữ liệu`, async () => {
+      await userPage.searchUsers({
+        usernameOrId: userData.testKeywords.notFoundForPagination,
+      });
+      const noDataCell = sharedPage
+        .getByRole("cell")
+        .filter({ hasText: userData.labels.noDataMessage });
+      await expect(noDataCell).toBeVisible();
+      await expect(userPage.paginationNextPageButton).toBeHidden();
+
+      await userPage.clearFilters();
+
+      const count = await userPage.tableRows.count();
+      expect(count).toBeLessThanOrEqual(10);
+      await expect(userPage.paginationNextPageButton).toBeVisible();
+    });
+
+    test(`TC${tcIndex++} - Kiểm tra icon < (Previous)`, async () => {
+      await expect(userPage.paginationPrevPageButton).toBeDisabled();
+
+      await userPage.paginationNextPageButton.click();
+      await expect(userPage.paginationPrevPageButton).toBeVisible();
+      await expect(userPage.paginationPrevPageButton).toBeEnabled();
+
+      await userPage.paginationPrevPageButton.click();
+      await expect(userPage.paginationPrevPageButton).toBeDisabled();
+    });
+
+    test(`TC${tcIndex++} - Kiểm tra icon << (First)`, async () => {
+      await expect(userPage.paginationFirstPageButton).toBeDisabled();
+
+      await userPage.paginationNextPageButton.click();
+
+      await expect(userPage.paginationFirstPageButton).toBeVisible();
+      await expect(userPage.paginationFirstPageButton).toBeEnabled();
+
+      await userPage.paginationFirstPageButton.click();
+      await expect(userPage.paginationFirstPageButton).toBeDisabled();
+    });
+
+    test(`TC${tcIndex++} - Kiểm tra icon > (Next)`, async () => {
+      await userPage.paginationLastPageButton.click();
+
+      await expect(userPage.paginationNextPageButton).toBeDisabled();
+
+      await userPage.paginationFirstPageButton.click();
+      await expect(userPage.paginationNextPageButton).toBeVisible();
+      await expect(userPage.paginationNextPageButton).toBeEnabled();
+
+      await userPage.paginationNextPageButton.click();
+      await expect(userPage.paginationFirstPageButton).toBeVisible();
+    });
+
+    test(`TC${tcIndex++} - Kiểm tra icon >> (Last)`, async () => {
+      await userPage.paginationLastPageButton.click();
+
+      await expect(userPage.paginationLastPageButton).toBeDisabled();
+
+      await userPage.paginationFirstPageButton.click();
+      await expect(userPage.paginationLastPageButton).toBeVisible();
+      await expect(userPage.paginationLastPageButton).toBeEnabled();
+
+      await userPage.paginationLastPageButton.click();
+      await expect(userPage.paginationLastPageButton).toBeDisabled();
+    });
+
+    test(`TC${tcIndex++} - Kiểm tra khi click trang bất kỳ`, async () => {
+      await userPage.paginationFirstPageButton.click();
+
+      const page2Btn = sharedPage.getByRole("button", {
+        name: "2",
+        exact: true,
+      });
+      if (await page2Btn.isVisible()) {
+        await page2Btn.click();
+        await expect(page2Btn).toHaveAttribute("aria-current", "page");
+      }
+    });
+
+    test(`TC${tcIndex++} - Kiểm tra thông tin hiển thị số lượng bản ghi (Pagination Summary)`, async () => {
+      await userPage.clearFilters();
+
+      await sharedPage.waitForTimeout(500);
+
+      if (
+        (await userPage.paginationFirstPageButton.isVisible()) &&
+        (await userPage.paginationFirstPageButton.isEnabled())
+      ) {
+        await userPage.paginationFirstPageButton.click();
+        await sharedPage.waitForTimeout(500);
+      }
+
+      const summaryText = await userPage.paginationSummary.innerText();
+
+      const match = summaryText.match(userData.pagination.summaryRegex);
+      expect(match).not.toBeNull();
+
+      const totalRecords = parseInt(match[1].replace(/,/g, ""), 10);
+      const startRecord = parseInt(match[2].replace(/,/g, ""), 10);
+      const endRecord = parseInt(match[3].replace(/,/g, ""), 10);
+
+      expect(startRecord).toBe(1);
+
+      expect(endRecord).toBe(Math.min(10, totalRecords));
+
+      const currentRowsCount = await userPage.tableRows.count();
+      expect(currentRowsCount).toBe(endRecord - startRecord + 1);
+
+      if (totalRecords > 10) {
+        await userPage.paginationNextPageButton.click();
+
+        await expect(userPage.paginationSummary).toContainText("11〜");
+
+        const textPage2 = await userPage.paginationSummary.innerText();
+        const matchPage2 = textPage2.match(userData.pagination.summaryRegex);
+
+        const startRecord2 = parseInt(matchPage2[2].replace(/,/g, ""), 10);
+        const endRecord2 = parseInt(matchPage2[3].replace(/,/g, ""), 10);
+
+        expect(startRecord2).toBe(11);
+        expect(endRecord2).toBe(Math.min(20, totalRecords));
+      }
+
+      await userPage.paginationLastPageButton.click();
+
+      await expect(userPage.paginationSummary).toContainText(
+        `〜${totalRecords} 件`,
+      );
+
+      const textLastPage = await userPage.paginationSummary.innerText();
+      const matchLastPage = textLastPage.match(
+        userData.pagination.summaryRegex,
+      );
+      const endRecordLast = parseInt(matchLastPage[3].replace(/,/g, ""), 10);
+
+      expect(endRecordLast).toBe(totalRecords);
+    });
+  });
+
+  test.describe("6. Table (Bảng dữ liệu)", () => {
+    test.beforeEach(async () => {
+      await userPage.navigateToUser();
+      await userPage.clearFilters();
+      await sharedPage.waitForTimeout(500);
+    });
+
+    test(`TC${tcIndex++} - Kiểm tra hiển thị đủ và đúng thứ tự các cột Table Header`, async () => {
+      const headers = userPage.userTable.locator("thead th");
+      const count = await headers.count();
+
+      expect(count).toBe(userData.tableHeaders.length);
+
+      for (let i = 0; i < count; i++) {
+        const headerText = await headers.nth(i).innerText();
+        expect(headerText.trim()).toBe(userData.tableHeaders[i]);
+      }
+    });
+
+    test(`TC${tcIndex++} - Kiểm tra hiển thị Data Rows mặc định`, async () => {
+      const rowsCount = await userPage.tableRows.count();
+      expect(rowsCount).toBeLessThanOrEqual(10);
+
+      if (rowsCount > 0) {
+        const firstRowCells = userPage.tableRows.first().locator("td");
+        const cellCount = await firstRowCells.count();
+        expect(cellCount).toBe(userData.tableHeaders.length);
+      }
+    });
+
+    test(`TC${tcIndex++} - Kiểm tra hiển thị Empty State khi bảng không có dữ liệu`, async () => {
+      await userPage.searchUsers({
+        usernameOrId: userData.testKeywords.notFoundForTable,
+      });
+
+      const noDataCell = sharedPage
+        .getByRole("cell")
+        .filter({ hasText: userData.labels.noDataMessage });
+
+      await expect(noDataCell).toBeVisible();
+    });
+
+    test(`TC${tcIndex++} - Kiểm tra chức năng ẩn/hiện Nhóm cột 1 (+4)`, async () => {
+      await userPage.clearFilters();
+      let headers = userPage.userTable.locator("thead th");
+
+      const plus4Btn = userPage.userTable
+        .locator("th")
+        .filter({ hasText: userData.tableExpandGroups.group1.toggleBtn });
+      await plus4Btn.click();
+
+      await expect(headers).toHaveCount(28);
+
+      for (const col of userData.tableExpandGroups.group1.columns) {
+        await expect(
+          userPage.userTable.locator("th").filter({ hasText: col }),
+        ).toBeVisible();
+      }
+
+      await headers.nth(10).click();
+
+      await expect(headers).toHaveCount(24);
+      await expect(
+        userPage.userTable
+          .locator("th")
+          .filter({ hasText: userData.tableExpandGroups.group1.columns[0] }),
+      ).toBeHidden();
+    });
+
+    test(`TC${tcIndex++} - Kiểm tra chức năng ẩn/hiện Nhóm cột 2 (+6)`, async () => {
+      let headers = userPage.userTable.locator("thead th");
+
+      const plus6Btn = userPage.userTable
+        .locator("th")
+        .filter({ hasText: userData.tableExpandGroups.group2.toggleBtn });
+      await plus6Btn.click();
+
+      await expect(headers).toHaveCount(30);
+
+      for (const col of userData.tableExpandGroups.group2.columns) {
+        await expect(
+          userPage.userTable.locator("th").filter({ hasText: col }),
+        ).toBeVisible();
+      }
+
+      await headers.nth(14).click();
+
+      await expect(headers).toHaveCount(24);
+      await expect(
+        userPage.userTable
+          .locator("th")
+          .filter({ hasText: userData.tableExpandGroups.group2.columns[0] }),
+      ).toBeHidden();
     });
   });
 });

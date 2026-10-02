@@ -8,7 +8,6 @@ export class LoginPage {
   constructor(page) {
     this.page = page;
 
-    // Form Inputs & Links dựa trên Page_Object_Model
     this.accountInput = page.getByRole("textbox", {
       name: loginData.items.email,
     });
@@ -22,7 +21,6 @@ export class LoginPage {
       name: loginData.items.forgotPassword,
     });
 
-    // Toast error khi sai credentials (dùng role 'listitem' giống POM gốc)
     this.toastErrorMsg = page
       .getByRole("listitem")
       .filter({ hasText: loginData.messages.invalidCredentials });
@@ -39,13 +37,10 @@ export class LoginPage {
     if (password !== undefined) {
       await this.passwordInput.fill(password);
     }
-    // Click bình thường, để các assertion tự chờ kết quả
     await this.loginButton.click();
   }
 
   async verifyLoginSuccess(expectedTitle) {
-    // Dùng expect().toHaveTitle() có cơ chế tự động thử lại (auto-retrying) 
-    // thay vì waitForURL để tránh lỗi race condition gây timeout.
     await expect(this.page).toHaveTitle(expectedTitle);
   }
 }

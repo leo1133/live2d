@@ -1,4 +1,3 @@
-// src/utils/csvHelper.js
 import fs from "fs";
 import path from "path";
 import { parse } from "csv-parse/sync";
@@ -13,7 +12,6 @@ function parseCsvQueryValue(val) {
   if (val === "true" || val === "__BOOL_TRUE__") return true;
   if (val === "false" || val === "__BOOL_FALSE__") return false;
 
-  // Tự động ép kiểu số nếu chuỗi thuần số
   if (!isNaN(val) && val.trim() !== "") {
     return Number(val);
   }
@@ -34,12 +32,10 @@ export function loadUserListCsvCases(csvRelativePath) {
   });
 
   return records.map((row, index) => {
-    // 1. Dựng Headers nếu có
     const headers = {};
     const accept = parseCsvQueryValue(row.accept);
     if (accept !== undefined) headers["Accept"] = accept;
 
-    // 2. Dựng Query Parameters từ các cột trong CSV
     const rawQueryParams = {
       page: parseCsvQueryValue(row.page),
       items_per_page: parseCsvQueryValue(row.items_per_page),
@@ -52,7 +48,6 @@ export function loadUserListCsvCases(csvRelativePath) {
       can_livestream: parseCsvQueryValue(row.can_livestream),
     };
 
-    // Loại bỏ các trường undefined (không gửi param đó)
     const queryParams = {};
     Object.keys(rawQueryParams).forEach((key) => {
       if (rawQueryParams[key] !== undefined) {

@@ -1,8 +1,5 @@
 import { HTTP_STATUS_CODE, CONTENT_TYPE } from "../utils/constants.js";
 
-// ------------------------------------------------------------------
-// 1. ERROR MESSAGES CONSTANTS
-// ------------------------------------------------------------------
 const ERROR_MESSAGES = {
   UNAUTHORIZED:
     "メールアドレス・IDまたはパスワードが一致しません。もう一度入力してください。",
@@ -20,13 +17,9 @@ const createMissingDetail = (field, msg) => ({
   msg,
 });
 
-// ------------------------------------------------------------------
-// 2. MAIN LOGIN DATA
-// ------------------------------------------------------------------
 export const loginData = {
   url: "/sign-in",
 
-  // UI Labels (tiếng Nhật)
   items: {
     email: "メール/ID",
     password: "パスワード",
@@ -42,7 +35,6 @@ export const loginData = {
     msg: "listitem",
   },
 
-  // Credentials (từ .env)
   credentials: {
     account: process.env.ADMIN_EMAIL,
     password: process.env.ADMIN_PASSWORD,
@@ -52,14 +44,12 @@ export const loginData = {
     wrongEmail: "admin1@gmail.com",
   },
 
-  // API Credentials (key names theo chuẩn của Backend)
   apiCredentials: {
     email_user_id: process.env.ADMIN_EMAIL,
     password: process.env.ADMIN_PASSWORD,
     login_type: Number(process.env.LOGIN_TYPE) || 1,
   },
 
-  // UI Validate Email
   validateEmail: {
     emptyEmail: "",
     alphabet: "email",
@@ -74,7 +64,6 @@ export const loginData = {
     invalidDomain: "admin@admin",
   },
 
-  // UI Validate Password
   validatePassword: {
     emptyPassword: "",
     alphabet: "password",
@@ -85,7 +74,6 @@ export const loginData = {
     longPassword: "ThisIsAVeryLongPasswordThatExceedsNormalLength12345!",
   },
 
-  // UI Messages
   messages: {
     accountRequired: "メール/IDは空欄にできません。",
     passwordRequired: "パスワードは空欄にできません。",
@@ -93,7 +81,6 @@ export const loginData = {
       "メールアドレス・IDまたはパスワードが一致しません。もう一度入力してください。",
   },
 
-  // API Expected Responses
   expectedResponses: {
     success: {
       status: HTTP_STATUS_CODE.OK,
@@ -136,9 +123,6 @@ export const loginData = {
   },
 };
 
-// ------------------------------------------------------------------
-// 3. PARAMETERIZED TEST DATA SETS (dùng cho API tests)
-// ------------------------------------------------------------------
 export const invalidContentTypePayloads = [
   { type: "text/plain", payload: "email=admin@example.com&password=123" },
   {
@@ -186,7 +170,7 @@ export const headerTestCases = [
   {
     title: "Invalid Content-Type header",
     headers: { "Content-Type": "text/plain" },
-    expectedStatus: HTTP_STATUS_CODE.UNPROCESSABLE_ENTITY, // Thực tế backend trả về 422 cho invalid content type
+    expectedStatus: HTTP_STATUS_CODE.UNPROCESSABLE_ENTITY,
   },
 ];
 
@@ -222,7 +206,6 @@ export const invalidValueCases = [
     override: { email_user_id: null },
     expectedStatus: HTTP_STATUS_CODE.UNPROCESSABLE_ENTITY,
   },
-  // Server xử lý invalid email format như là sai credentials (401), không phải lỗi validation (422)
   {
     title: "Invalid email format (no @)",
     override: { email_user_id: "invalid-email-format" },
@@ -253,7 +236,6 @@ export const invalidValueCases = [
     override: { login_type: "" },
     expectedStatus: HTTP_STATUS_CODE.UNPROCESSABLE_ENTITY,
   },
-  // Server chấp nhận login_type null và dùng giá trị mặc định, trả về 200
   {
     title: "Login type null",
     override: { login_type: null },

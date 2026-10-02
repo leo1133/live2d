@@ -1,7 +1,6 @@
 import pg from "pg";
 const { Pool } = pg;
 
-// Cấu hình thông số kết nối lấy từ pgAdmin
 const pool = new Pool({
   user: process.env.DB_USER,
   host: process.env.DB_HOST,
@@ -23,7 +22,7 @@ export class DBHelper {
       const res = await client.query(queryText, params);
       return res;
     } finally {
-      client.release(); // Giải phóng client về pool
+      client.release();
     }
   }
 
