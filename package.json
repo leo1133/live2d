@@ -1,0 +1,29 @@
+{
+  "name": "live2d",
+  "version": "1.0.0",
+  "description": "",
+  "main": "index.js",
+  "directories": {
+    "test": "tests"
+  },
+  "devDependencies": {
+    "@playwright/test": "^1.63.0",
+    "@types/node": "^26.6.2",
+    "dotenv": "^18.0.4"
+  },
+  "scripts": {
+    "test:dev": "ENV=dev npx playwright test",
+    "test:stg": "ENV=staging npx playwright test",
+    "test:ui:dev": "ENV=dev npx playwright test --ui",
+    "test:ui:stg": "ENV=staging npx playwright test --ui",
+    "report": "npx playwright show-report"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "type": "module",
+  "dependencies": {
+    "csv-parse": "^7.0.3",
+    "pg": "^8.23.0"
+  }
+}

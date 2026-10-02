@@ -1,0 +1,90 @@
+// @ts-check
+import { defineConfig, devices } from "@playwright/test";
+import dotenv from "dotenv";
+import path from "path";
+
+/**
+ * Tải biến môi trường dựa trên biến ENV (Mặc định là 'dev' nếu không truyền)
+ * Ví dụ: ENV=staging npx playwright test -> Đọc file .env.staging
+ */
+const ENV = process.env.ENV || "dev";
+dotenv.config({ path: path.resolve(process.cwd(), `.env.${ENV}`) });
+
+/**
+ * @see https://playwright.dev/docs/test-configuration
+ */
+export default defineConfig({
+  // Thư mục chứa các file test (*.spec.js)
+  testDir: "./tests",
+
+  /* Thời gian tối đa cho 1 test case (Mặc định Playwright là 30s) */
+  timeout: 30 * 1000,
+
+  /* Thời gian chờ cho lệnh expect() lên 10s */
+  expect: {
+    timeout: 10 * 1000,
+  },
+
+  /* Chạy các file test theo thứ tự tuần tự (Case 1 -> Case 57) */
+  fullyParallel: false,
+
+  /* Báo lỗi trên CI nếu lỡ quên test.only */
+  forbidOnly: !!process.env.CI,
+
+  /* Số lần thử lại (Retry) khi test bị fail */
+  retries: process.env.CI ? 2 : 0,
+
+  /* Số luồng chạy: 1 luồng để đảm bảo chạy đúng thứ tự tuần tự từ Case 1 tới Case 57 */
+  workers: 1,
+
+  /* Khai báo loại Báo cáo (Reporter) */
+  reporter: [["html", { open: "never" }], ["list"]],
+
+  /* Cấu hình chung cho toàn bộ dự án */
+  use: {
+    /* Ghi trace khi test thất bại lần đầu để debug */
+    trace: "on-first-retry",
+    /* Tự động điền Basic Auth (chống kẹt màn hình popup của browser) */
+    httpCredentials: process.env.BASIC_AUTH_USER
+      ? {
+          username: process.env.BASIC_AUTH_USER,
+          password: process.env.BASIC_AUTH_PASS || "",
+        }
+      : undefined,
+  },
+
+  /* Phân chia Projects theo đúng thứ tự Case (UI: Case 1-18 -> API: Case 19-49 -> E2E: Case 50-57) */
+  projects: [
+    // 1. Project chạy Test Admin UI trên Chrome (Case 1 - 18)
+    {
+      name: "Admin UI Tests - Chrome",
+      testDir: "./tests/ui",
+      use: {
+        ...devices["Desktop Chrome"],
+        baseURL: process.env.UI_BASE_URL,
+      },
+    },
+
+    // 2. Project chạy Test API (Case 19 - 49)
+    {
+      name: "API Tests",
+      testDir: "./tests/api",
+      use: {
+        baseURL: process.env.API_BASE_URL,
+        extraHTTPHeaders: {
+          Accept: "application/json",
+        },
+      },
+    },
+
+    // 3. Project chạy Test E2E (Case 50 - 57)
+    {
+      name: "E2E Tests",
+      testDir: "./tests/e2e",
+      use: {
+        ...devices["Desktop Chrome"],
+        baseURL: process.env.UI_BASE_URL,
+      },
+    },
+  ],
+});
