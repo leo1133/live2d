@@ -1,6 +1,14 @@
 export const userData = {
-  url: `${process.env.UI_BASE_URL}/users`,
-  dashboardUrl: `${process.env.UI_BASE_URL}/`,
+  get url() {
+    return process.env.UI_BASE_URL
+      ? `${process.env.UI_BASE_URL.replace(/\/$/, "")}/users`
+      : "/users";
+  },
+  get dashboardUrl() {
+    return process.env.UI_BASE_URL
+      ? `${process.env.UI_BASE_URL.replace(/\/$/, "")}/`
+      : "/";
+  },
   titles: {
     dashboard: "ダッシュボード",
   },

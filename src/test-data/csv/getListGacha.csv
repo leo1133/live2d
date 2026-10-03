@@ -1,0 +1,42 @@
+tcId,testName,page,items_per_page,keyword,status,expectedStatus
+TC001,Default params,1,10,,1,200
+TC002,Không truyền params,,,,,200
+TC003,Chỉ truyền page & items_per_page,1,10,,,200
+TC004,Chỉ truyền keyword,,,string,,200
+TC005,Chỉ truyền status = 1 (公開),,,,1,200
+TC006,Chỉ truyền status = 2 (非公開),,,,2,200
+TC007,Tất cả params rỗng (<empty>),<empty>,<empty>,<empty>,<empty>,422
+TC008,page thiếu,,10,,1,200
+TC009,page rỗng (<empty>),<empty>,10,,1,422
+TC010,page = null,null,10,,1,422
+TC011,page = 1 (trang đầu),1,10,,1,200
+TC012,page = 2 (trang sau),2,10,,1,200
+TC013,page = 0 (dưới min),0,10,,1,422
+TC014,page = -1 (số âm),-1,10,,1,422
+TC015,page = 1.5 (số thập phân),1.5,10,,1,422
+TC016,page = abc (chuỗi chữ),abc,10,,1,422
+TC017,page = @#$ (ký tự đặc biệt),@#$,10,,1,422
+TC018,page tràn số integer,99999999999999999999,10,,1,422
+TC019,page > total pages (99999),99999,10,,1,200
+TC020,items_per_page thiếu,1,,,1,200
+TC021,items_per_page rỗng (<empty>),1,<empty>,,1,422
+TC022,items_per_page = null,1,null,,1,422
+TC023,items_per_page = 1 (min),1,1,,1,200
+TC024,items_per_page = 10,1,10,,1,200
+TC025,items_per_page = 100 (max),1,100,,1,200
+TC026,items_per_page = 0 (dưới min),1,0,,1,422
+TC027,items_per_page = -1 (số âm),1,-1,,1,422
+TC028,items_per_page = 1.5 (số thập phân),1,1.5,,1,422
+TC029,items_per_page = abc (chuỗi chữ),1,abc,,1,422
+TC030,items_per_page = @#$ (ký tự đặc biệt),1,@#$,,1,422
+TC031,items_per_page = 101 (> max),1,101,,1,422
+TC032,keyword rỗng (<empty>),1,10,<empty>,1,200
+TC033,keyword có khoảng trắng,1,10, string ,1,200
+TC034,keyword không tồn tại,1,10,NOT_FOUND_9999,1,200
+TC035,keyword chứa ký tự đặc biệt,1,10,@#$%,1,200
+TC036,status rỗng (<empty>),1,10,,<empty>,422
+TC037,status = null,1,10,,null,422
+TC038,status = abc (chuỗi chữ),1,10,,abc,422
+TC039,status = @#$ (ký tự đặc biệt),1,10,,@#$,422
+TC040,status = 1.5 (số thập phân),1,10,,1.5,422
+TC041,status = 3 (không khớp enum),1,10,,3,200

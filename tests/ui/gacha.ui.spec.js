@@ -5,8 +5,9 @@ import { loginData } from "../../src/test-data/loginData.js";
 import { gachaData } from "../../src/test-data/gachaData.js";
 
 let tcIndex = 1;
+const padTc = () => `TC${String(tcIndex++).padStart(2, '0')}`;
 
-test.describe.serial("UI Gacha (Avatar) Management Suite - AQ100", () => {
+test.describe.serial("UI Gacha Management", () => {
   let sharedPage;
   let gachaPage;
 
@@ -24,7 +25,14 @@ test.describe.serial("UI Gacha (Avatar) Management Suite - AQ100", () => {
 
     await loginPage.goto();
     await loginPage.login(loginData.credentials.account, loginData.credentials.password);
-    await loginPage.verifyLoginSuccess(new RegExp(gachaData.titles.dashboard));
+    try {
+      await loginPage.verifyLoginSuccess(new RegExp(gachaData.titles.dashboard));
+    } catch (err) {
+      console.warn("Retrying login after transient failure...");
+      await loginPage.goto();
+      await loginPage.login(loginData.credentials.account, loginData.credentials.password);
+      await loginPage.verifyLoginSuccess(new RegExp(gachaData.titles.dashboard));
+    }
   });
 
   test.afterAll(async () => {
@@ -37,67 +45,67 @@ test.describe.serial("UI Gacha (Avatar) Management Suite - AQ100", () => {
     await sharedPage.waitForTimeout(500);
   }
 
-  // ==================== [0,1] Sidebar & Breadcrumb ====================
-  test.describe("[0,1] Sidebar & Breadcrumb", () => {
-    test(`TC${tcIndex++} - AQ100-1: Kiểm tra hiển thị Sidebar menu`, async () => {
+  // ==================== 1. Sidebar & Breadcrumb ====================
+  test.describe("1. Sidebar & Breadcrumb", () => {
+    test(`${padTc()}: Hiển thị Sidebar menu`, async () => {
       await gachaPage.navigateToGachaList();
       await expect(gachaPage.toggleSidebarButton).toBeVisible();
       await expect(gachaPage.gachaListLink).toBeVisible();
     });
 
-    test(`TC${tcIndex++} - AQ100-2: Click Menu điều hướng tới trang Gacha`, async () => {
+    test(`${padTc()}: Điều hướng tới trang Gacha`, async () => {
       await expect(sharedPage).toHaveURL(new RegExp(gachaData.url));
       await expect(gachaPage.pageHeading).toBeVisible();
     });
 
-    test(`TC${tcIndex++} - AQ100-3: Kiểm tra Breadcrumb hiển thị`, async () => {
+    test(`${padTc()}: Hiển thị Breadcrumb`, async () => {
       await expect(gachaPage.breadcrumbNav).toContainText(gachaData.labels.pageHeading);
     });
 
-    test(`TC${tcIndex++} - AQ100-4: Click Breadcrumb Home điều hướng về Dashboard`, async () => {
+    test(`${padTc()}: Click Breadcrumb Home về Dashboard`, async () => {
       await gachaPage.clickBreadcrumbHome();
       await expect(sharedPage).toHaveURL(new RegExp(gachaData.dashboardUrl));
     });
   });
 
-  // ==================== [2] Search box ====================
-  test.describe("[2] Search box (モデル名)", () => {
+  // ==================== 2. Search box ====================
+  test.describe("2. Search box (モデル名)", () => {
     test.beforeEach(async () => {
       await ensureGachaPage();
     });
 
-    test(`TC${tcIndex++} - AQ100-5: Kiểm tra hiển thị search box`, async () => {
+    test(`${padTc()}: Hiển thị search box`, async () => {
       await expect(gachaPage.searchInput).toBeVisible();
       await expect(gachaPage.searchInput).toHaveAttribute('placeholder', gachaData.labels.modelNameInput);
     });
 
     for (const t of gachaData.searchTestCases) {
-      test(`TC${tcIndex++} - AQ100-${t.id}: Cho phép nhập ${t.type}`, async () => {
+      test(`${padTc()}: Nhập ${t.type}`, async () => {
         await gachaPage.searchInput.fill(t.val);
         await expect(gachaPage.searchInput).toHaveValue(t.val);
       });
     }
 
-    test(`TC${tcIndex++} - AQ100-13: Nhập dữ liệu và xóa`, async () => {
+    test(`${padTc()}: Xóa dữ liệu search box`, async () => {
       await gachaPage.searchInput.fill(gachaData.testInputs.textToDelete);
       await gachaPage.searchInput.clear();
       await expect(gachaPage.searchInput).toBeEmpty();
     });
   });
 
-  // ==================== [3] Pulldown status ====================
-  test.describe("[3] Pulldown status", () => {
+  // ==================== 3. Dropdown Status ====================
+  test.describe("3. Dropdown Status", () => {
     test.beforeEach(async () => {
       await ensureGachaPage();
     });
 
-    test(`TC${tcIndex++} - AQ100-14: Giá trị mặc định dropdown là ${gachaData.filterOptions.status[0]}`, async () => {
+    test(`${padTc()}: Giá trị mặc định là "${gachaData.filterOptions.status[0]}"`, async () => {
       const statusDropdown = sharedPage.getByRole('combobox').first();
       await expect(statusDropdown).toBeVisible();
       await expect(statusDropdown).toHaveText(new RegExp(gachaData.filterOptions.status[0]));
     });
 
-    test(`TC${tcIndex++} - AQ100-15: Chọn ${gachaData.filterOptions.status[1]} từ dropdown`, async () => {
+    test(`${padTc()}: Chọn "${gachaData.filterOptions.status[1]}"`, async () => {
       const statusDropdown = sharedPage.getByRole('combobox').first();
       await statusDropdown.click();
       await sharedPage.waitForTimeout(300);
@@ -105,7 +113,7 @@ test.describe.serial("UI Gacha (Avatar) Management Suite - AQ100", () => {
       await expect(statusDropdown).toHaveText(new RegExp(gachaData.filterOptions.status[1]));
     });
 
-    test(`TC${tcIndex++} - AQ100-16: Chọn ${gachaData.filterOptions.status[2]} từ dropdown`, async () => {
+    test(`${padTc()}: Chọn "${gachaData.filterOptions.status[2]}"`, async () => {
       const statusDropdown = sharedPage.getByRole('combobox').first();
       await statusDropdown.click();
       await sharedPage.waitForTimeout(300);
@@ -114,24 +122,24 @@ test.describe.serial("UI Gacha (Avatar) Management Suite - AQ100", () => {
     });
   });
 
-  // ==================== [4] Button 検索 (Search) ====================
-  test.describe("[4] Button 検索 (Search)", () => {
+  // ==================== 4. Button Tìm kiếm ====================
+  test.describe("4. Button Tìm kiếm (検索)", () => {
     test.beforeEach(async () => {
       await ensureGachaPage();
     });
 
-    test(`TC${tcIndex++} - AQ100-20: Search không nhập dữ liệu - hiển thị tất cả`, async () => {
+    test(`${padTc()}: Search không nhập dữ liệu - hiển thị tất cả`, async () => {
       await gachaPage.clearFilters();
       await gachaPage.searchButton.click();
       await expect(gachaPage.tableRows.first()).toBeVisible();
     });
 
-    test(`TC${tcIndex++} - AQ100-23: Search keyword không có kết quả`, async () => {
+    test(`${padTc()}: Search keyword không có kết quả`, async () => {
       await gachaPage.searchModel(gachaData.testInputs.invalidModelName);
       await expect(sharedPage.getByText(gachaData.labels.noDataMessage)).toBeVisible();
     });
 
-    test(`TC${tcIndex++} - AQ100-24: Search chọn 全て - hiển thị tất cả`, async () => {
+    test(`${padTc()}: Search status "全て" - hiển thị tất cả`, async () => {
       const statusDropdown = sharedPage.getByRole('combobox').first();
       await statusDropdown.click();
       await sharedPage.waitForTimeout(300);
@@ -140,7 +148,7 @@ test.describe.serial("UI Gacha (Avatar) Management Suite - AQ100", () => {
       await expect(gachaPage.tableRows.first()).toBeVisible();
     });
 
-    test(`TC${tcIndex++} - AQ100-27: Search status không có kết quả`, async () => {
+    test(`${padTc()}: Search status không có kết quả`, async () => {
       await gachaPage.searchInput.fill(gachaData.testInputs.invalidModelName);
       const statusDropdown = sharedPage.getByRole('combobox').first();
       await statusDropdown.click();
@@ -151,48 +159,109 @@ test.describe.serial("UI Gacha (Avatar) Management Suite - AQ100", () => {
     });
   });
 
-  // ==================== [5] Button クリア (Clear) ====================
-  test.describe("[5] Button クリア (Clear)", () => {
+  // ==================== 5. Button Clear ====================
+  test.describe("5. Button Clear (クリア)", () => {
     test.beforeEach(async () => {
       await ensureGachaPage();
     });
 
-    test(`TC${tcIndex++} - AQ100-31: Xóa dữ liệu search`, async () => {
+    test(`${padTc()}: Xóa dữ liệu search về mặc định`, async () => {
       await gachaPage.searchInput.fill(gachaData.testInputs.textToDelete);
       await gachaPage.clearFilters();
       await expect(gachaPage.searchInput).toBeEmpty();
     });
   });
 
-  // ==================== [6..12] Table Labels & Icons ====================
-  test.describe("[6..12] Kiểm tra Table Labels và Icons", () => {
+  // ==================== 6. Table & Icons ====================
+  test.describe("6. Table & Icons", () => {
     test.beforeEach(async () => {
       await ensureGachaPage();
     });
 
-    test(`TC${tcIndex++} - AQ100-32: Kiểm tra cột ID hiển thị`, async () => {
+    test(`${padTc()}: Hiển thị cột ID`, async () => {
       await gachaPage.searchButton.click();
       await expect(sharedPage.getByText(gachaData.labels.idColumn, { exact: true })).toBeVisible();
     });
 
-    test(`TC${tcIndex++} - AQ100-33: Kiểm tra cột モデル名 hiển thị`, async () => {
+    test(`${padTc()}: Hiển thị cột モデル名`, async () => {
       await gachaPage.searchButton.click();
       await expect(sharedPage.getByText(gachaData.labels.modelNameColumn, { exact: true })).toBeVisible();
     });
 
-    test(`TC${tcIndex++} - AQ100-34: Kiểm tra cột ステータス hiển thị`, async () => {
+    test(`${padTc()}: Hiển thị cột ステータス`, async () => {
       await gachaPage.searchButton.click();
       await expect(gachaPage.columnStatus).toBeVisible();
     });
 
-    test(`TC${tcIndex++} - AQ100-67: Kiểm tra icon Edit hiển thị`, async () => {
+    test(`${padTc()}: Hiển thị cột ${gachaData.labels.limitedColumn}`, async () => {
       await gachaPage.searchButton.click();
-      if (await gachaPage.tableRows.count() > 0) {
+      await expect(sharedPage.getByText(gachaData.labels.limitedColumn, { exact: true })).toBeVisible();
+    });
+
+    test(`${padTc()}: Hiển thị cột ${gachaData.labels.normalColumn}`, async () => {
+      await gachaPage.searchButton.click();
+      await expect(sharedPage.getByText(gachaData.labels.normalColumn, { exact: true })).toBeVisible();
+    });
+
+    test(`${padTc()}: Hiển thị icon Edit tại cột ${gachaData.labels.limitedColumn} và ${gachaData.labels.normalColumn}`, async () => {
+      await gachaPage.searchButton.click();
+      if ((await gachaPage.tableRows.count()) > 0) {
         const firstRow = gachaPage.tableRows.first();
-        const editIcons = firstRow.locator(gachaData.selectors.editIcon).first();
-        if (await editIcons.isVisible()) {
-          await expect(editIcons).toBeEnabled();
-        }
+        const cells = firstRow.locator(gachaData.selectors.tableCell);
+
+        // Icon Edit tại cột 期間限定
+        const editLimitedIcon = cells.nth(gachaData.columnIndices.limited).locator(gachaData.selectors.editIcon).first();
+        await expect(editLimitedIcon).toBeVisible();
+        await expect(editLimitedIcon).toBeEnabled();
+
+        // Icon Edit tại cột ノーマル
+        const editNormalIcon = cells.nth(gachaData.columnIndices.normal).locator(gachaData.selectors.editIcon).first();
+        await expect(editNormalIcon).toBeVisible();
+        await expect(editNormalIcon).toBeEnabled();
+      }
+    });
+
+    test(`${padTc()}: Click icon Edit cột ${gachaData.labels.limitedColumn} - mở màn hình chỉnh sửa`, async () => {
+      await gachaPage.searchButton.click();
+      if ((await gachaPage.tableRows.count()) > 0) {
+        const firstRow = gachaPage.tableRows.first();
+        const editLimitedLink = firstRow
+          .locator(gachaData.selectors.tableCell)
+          .nth(gachaData.columnIndices.limited)
+          .getByRole("link", { name: gachaData.editAriaLabels.limitedRegex });
+
+        await editLimitedLink.click();
+        await expect(
+          sharedPage.getByRole("heading", {
+            name: gachaData.editHeadings.limitedRegex,
+          }),
+        ).toBeVisible();
+
+        // Quay lại màn hình danh sách
+        await sharedPage.getByRole("link", { name: gachaData.labels.pageHeading }).click();
+        await expect(gachaPage.pageHeading).toBeVisible();
+      }
+    });
+
+    test(`${padTc()}: Click icon Edit cột ${gachaData.labels.normalColumn} - mở màn hình chỉnh sửa`, async () => {
+      await gachaPage.searchButton.click();
+      if ((await gachaPage.tableRows.count()) > 0) {
+        const firstRow = gachaPage.tableRows.first();
+        const editNormalLink = firstRow
+          .locator(gachaData.selectors.tableCell)
+          .nth(gachaData.columnIndices.normal)
+          .getByRole("link", { name: gachaData.editAriaLabels.normalRegex });
+
+        await editNormalLink.click();
+        await expect(
+          sharedPage.getByRole("heading", {
+            name: gachaData.editHeadings.normalRegex,
+          }),
+        ).toBeVisible();
+
+        // Quay lại màn hình danh sách
+        await sharedPage.getByRole("link", { name: gachaData.labels.pageHeading }).click();
+        await expect(gachaPage.pageHeading).toBeVisible();
       }
     });
   });
