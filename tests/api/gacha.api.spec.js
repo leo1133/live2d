@@ -18,7 +18,7 @@ test.describe("API Gacha List", () => {
       gachaApi = new GachaAPI(authenticatedRequest);
     });
 
-    test("TC01: Lấy danh sách thành công (Full Schema & Data)", async () => {
+    test("TC01: Lấy danh sách thành công (Full Schema & Data Integrity)", async () => {
       const queryParams = apiGachaData.defaultParams;
 
       const response = await gachaApi.getGachas({
@@ -49,63 +49,6 @@ test.describe("API Gacha List", () => {
           created_at: expect.any(String),
           updated_at: expect.any(String),
         });
-      }
-    });
-
-    test("TC02: Lọc theo Status (公開 / 非公開)", async () => {
-      const publicResponse = await gachaApi.getGachas({
-        method: METHODS.GET,
-        queryParams: {
-          ...apiGachaData.defaultParams,
-          status: apiGachaData.filterParams.status.public,
-        },
-      });
-      expect(publicResponse.status()).toBe(200);
-      const publicBody = await publicResponse.json();
-      if (publicBody.data.length > 0) {
-        expect(publicBody.data[0].status).toBe(apiGachaData.filterParams.status.public);
-      }
-
-      const privateResponse = await gachaApi.getGachas({
-        method: METHODS.GET,
-        queryParams: {
-          ...apiGachaData.defaultParams,
-          status: apiGachaData.filterParams.status.private,
-        },
-      });
-      expect(privateResponse.status()).toBe(200);
-      const privateBody = await privateResponse.json();
-      if (privateBody.data.length > 0) {
-        expect(privateBody.data[0].status).toBe(apiGachaData.filterParams.status.private);
-      }
-    });
-
-    test("TC03: Tìm kiếm theo Keyword (Có dữ liệu)", async () => {
-      const listResponse = await gachaApi.getGachas({
-        method: METHODS.GET,
-        queryParams: apiGachaData.defaultParams,
-      });
-      const listBody = await listResponse.json();
-      const keyword = listBody.data.length > 0 ? listBody.data[0].name : apiGachaData.filterParams.keyword.valid;
-
-      const response = await gachaApi.getGachas({
-        method: METHODS.GET,
-        queryParams: {
-          ...apiGachaData.defaultParams,
-          keyword: keyword,
-          status: undefined,
-        },
-      });
-
-      expect(response.status()).toBe(200);
-      const body = await response.json();
-      if (body.data.length > 0) {
-        const isKeywordExist = body.data.some(
-          (item) =>
-            item.name.toLowerCase().includes(keyword.toLowerCase()) ||
-            item.id.toString().includes(keyword),
-        );
-        expect(isKeywordExist).toBeTruthy();
       }
     });
   });
@@ -199,7 +142,7 @@ test.describe("API Gacha List", () => {
   });
 
   // =========================================================================
-  // 4. QUERY PARAMETERS (CSV DATA-DRIVEN)
+  // 4. QUERY PARAMETERS (CSV DATA-DRIVEN & DEEP ASSERTIONS)
   // =========================================================================
   test.describe("4. Query Parameters (CSV)", () => {
     let gachaApi;
@@ -224,6 +167,50 @@ test.describe("API Gacha List", () => {
             expect(body).toMatchObject(
               apiGachaData.expectedResponses.success.bodySchema,
             );
+
+            // 1. Kiểm tra nghiệp vụ lọc Status (nếu có truyền)
+            if (
+              queryParams.status !== undefined &&
+              queryParams.status !== null &&
+              queryParams.status !== "" &&
+              !isNaN(Number(queryParams.status))
+            ) {
+              const targetStatus = Number(queryParams.status);
+              body.data.forEach((item) => {
+                expect(item.status).toBe(targetStatus);
+              });
+            }
+
+            // 2. Kiểm tra nghiệp vụ tìm kiếm Keyword (nếu có truyền)
+            if (queryParams.keyword && String(queryParams.keyword).trim() !== "") {
+              if (body.data.length > 0) {
+                const keywordLower = String(queryParams.keyword).toLowerCase().trim();
+                const hasKeyword = body.data.some(
+                  (item) =>
+                    item.name.toLowerCase().includes(keywordLower) ||
+                    item.id.toString().includes(keywordLower),
+                );
+                expect(hasKeyword).toBeTruthy();
+              }
+            }
+
+            // 3. Kiểm tra tính đồng bộ phân trang (Page & Items Per Page)
+            if (
+              queryParams.page !== undefined &&
+              queryParams.page !== null &&
+              !isNaN(Number(queryParams.page)) &&
+              Number(queryParams.page) >= 1
+            ) {
+              expect(body.page).toBe(Number(queryParams.page));
+            }
+            if (
+              queryParams.items_per_page !== undefined &&
+              queryParams.items_per_page !== null &&
+              !isNaN(Number(queryParams.items_per_page)) &&
+              Number(queryParams.items_per_page) >= 1
+            ) {
+              expect(body.items_per_page).toBe(Number(queryParams.items_per_page));
+            }
           } else if (expectedStatus === 422) {
             const body = await response.json();
             expect(body.detail[0]).toMatchObject({
@@ -234,5 +221,149 @@ test.describe("API Gacha List", () => {
         });
       },
     );
+  });
+
+  // =========================================================================
+  // 5. DATABASE VERIFICATION (API VS DB)
+  // =========================================================================
+  test.describe("5. Database Verification (API vs DB)", () => {
+    let gachaApi;
+    let isDbAvailable = false;
+
+    test.beforeAll(async () => {
+      const { DBHelper } = await import("../../src/utils/db.helper.js");
+      isDbAvailable = await DBHelper.isConnected();
+    });
+
+    test.beforeEach(async ({ authenticatedRequest }) => {
+      test.skip(
+        !isDbAvailable,
+        "⚠️ Bỏ qua DB tests: Không thể kết nối tới Database (Database offline hoặc chưa bật)",
+      );
+      gachaApi = new GachaAPI(authenticatedRequest);
+    });
+
+    test("TC_DB01: Đồng bộ Total Count và số lượng items giữa API và DB", async ({ db }) => {
+      const queryParams = { page: 1, items_per_page: 10 };
+
+      const response = await gachaApi.getGachas({
+        method: METHODS.GET,
+        queryParams,
+      });
+
+      expect(response.status()).toBe(200);
+      const body = await response.json();
+
+      // Truy vấn DB tương ứng
+      const dbResult = await db.getGachaList({
+        page: queryParams.page,
+        itemsPerPage: queryParams.items_per_page,
+      });
+
+      expect(body.total_count).toBe(dbResult.totalCount);
+      expect(body.data.length).toBe(dbResult.rows.length);
+    });
+
+    test("TC_DB02: Đồng bộ chi tiết từng trường dữ liệu (Field-by-Field) của Gacha Item", async ({ db }) => {
+      const response = await gachaApi.getGachas({
+        method: METHODS.GET,
+        queryParams: { page: 1, items_per_page: 10 },
+      });
+
+      expect(response.status()).toBe(200);
+      const body = await response.json();
+
+      if (body.data.length > 0) {
+        const randomIndex = Math.floor(Math.random() * body.data.length);
+        const apiItem = body.data[randomIndex];
+
+        // Lấy bản ghi tương ứng từ DB theo ID
+        const dbItem = await db.getGachaById(apiItem.id);
+        expect(dbItem).toBeDefined();
+
+        expect(apiItem.id).toBe(dbItem.id);
+        expect(apiItem.name).toBe(dbItem.name);
+        expect(apiItem.status).toBe(dbItem.status);
+
+        if (apiItem.created_at && dbItem.created_at) {
+          expect(new Date(apiItem.created_at).getTime()).toBe(
+            new Date(dbItem.created_at).getTime(),
+          );
+        }
+        if (apiItem.updated_at && dbItem.updated_at) {
+          expect(new Date(apiItem.updated_at).getTime()).toBe(
+            new Date(dbItem.updated_at).getTime(),
+          );
+        }
+      }
+    });
+
+    test("TC_DB03: Đồng bộ dữ liệu khi lọc theo Status (公開 / 非公開)", async ({ db }) => {
+      const targetStatus = apiGachaData.filterParams.status.public; // 1: Public
+
+      const response = await gachaApi.getGachas({
+        method: METHODS.GET,
+        queryParams: {
+          ...apiGachaData.defaultParams,
+          status: targetStatus,
+        },
+      });
+
+      expect(response.status()).toBe(200);
+      const body = await response.json();
+
+      const dbResult = await db.getGachaList({
+        page: apiGachaData.defaultParams.page,
+        itemsPerPage: apiGachaData.defaultParams.items_per_page,
+        status: targetStatus,
+      });
+
+      expect(body.total_count).toBe(dbResult.totalCount);
+      expect(body.data.length).toBe(dbResult.rows.length);
+
+      for (const item of body.data) {
+        expect(item.status).toBe(targetStatus);
+        const dbItem = await db.getGachaById(item.id);
+        if (dbItem) {
+          expect(dbItem.status).toBe(targetStatus);
+          expect(dbItem.name).toBe(item.name);
+        }
+      }
+    });
+
+    test("TC_DB04: Đồng bộ dữ liệu khi tìm kiếm theo Keyword", async ({ db }) => {
+      // Lấy 1 tên gacha mẫu từ DB hoặc test data
+      const defaultDbData = await db.getGachaList({ page: 1, itemsPerPage: 1 });
+      const keyword = defaultDbData.rows.length > 0 ? defaultDbData.rows[0].name : "test";
+
+      const response = await gachaApi.getGachas({
+        method: METHODS.GET,
+        queryParams: {
+          page: 1,
+          items_per_page: 10,
+          keyword: keyword,
+          status: undefined,
+        },
+      });
+
+      expect(response.status()).toBe(200);
+      const body = await response.json();
+
+      const dbResult = await db.getGachaList({
+        page: 1,
+        itemsPerPage: 10,
+        keyword: keyword,
+      });
+
+      expect(body.total_count).toBe(dbResult.totalCount);
+      expect(body.data.length).toBe(dbResult.rows.length);
+
+      for (const item of body.data) {
+        const dbItem = await db.getGachaById(item.id);
+        if (dbItem) {
+          expect(dbItem.name.toLowerCase()).toContain(keyword.toLowerCase());
+        }
+      }
+    });
   });
 });

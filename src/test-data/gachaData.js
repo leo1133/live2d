@@ -66,6 +66,7 @@ export const gachaData = {
     { id: "11", type: "khoảng trắng giữa", val: "Te st" },
   ],
   pagination: {
+    defaultPageSize: 10,
     summaryLocatorRegex: /全 .* 件中 .* 件を表示/,
     summaryRegex:
       /全 (\d{1,3}(?:,\d{3})*) 件中 (\d{1,3}(?:,\d{3})*)〜(\d{1,3}(?:,\d{3})*) 件を表示/,

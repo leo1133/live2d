@@ -5,7 +5,8 @@ import { GachaAPI } from "../../src/api/GachaAPI.js";
 import { loginData } from "../../src/test-data/loginData.js";
 import { gachaData } from "../../src/test-data/gachaData.js";
 import { apiGachaData } from "../../src/test-data/apiGachaData.js";
-import { METHODS } from "../../src/utils/constants.js";
+import { METHODS, HTTP_STATUS_CODE } from "../../src/utils/constants.js";
+import { ENDPOINTS } from "../../src/config/endpoint.js";
 
 test.describe.serial("E2E Gacha Management", () => {
   let sharedPage;
@@ -33,19 +34,10 @@ test.describe.serial("E2E Gacha Management", () => {
       loginData.credentials.account,
       loginData.credentials.password,
     );
-    try {
-      await loginPage.verifyLoginSuccess(new RegExp(gachaData.titles.dashboard));
-    } catch (e) {
-      await loginPage.goto();
-      await loginPage.login(
-        loginData.credentials.account,
-        loginData.credentials.password,
-      );
-      await loginPage.verifyLoginSuccess(new RegExp(gachaData.titles.dashboard));
-    }
+    await loginPage.verifyLoginSuccess(new RegExp(gachaData.titles.dashboard));
 
     await gachaPage.navigateToGachaList();
-    await sharedPage.waitForTimeout(1000);
+    await gachaPage.searchInput.waitFor({ state: "visible", timeout: 15000 });
   });
 
   test.beforeEach(async ({ authenticatedRequest }) => {
@@ -59,21 +51,37 @@ test.describe.serial("E2E Gacha Management", () => {
   async function ensureGachaPage() {
     await sharedPage.goto(gachaData.url);
     await gachaPage.searchInput.waitFor({ state: "visible", timeout: 15000 });
-    await sharedPage.waitForTimeout(500);
+  }
+
+  async function fetchGachaApi(extraParams = {}) {
+    const apiResponse = await gachaApi.getGachas({
+      method: METHODS.GET,
+      queryParams: {
+        page: apiGachaData.defaultParams.page,
+        items_per_page: apiGachaData.defaultParams.items_per_page,
+        ...extraParams,
+      },
+    });
+    expect(apiResponse.status()).toBe(HTTP_STATUS_CODE.OK);
+    return await apiResponse.json();
+  }
+
+  async function executeWithApiResponse(action) {
+    const [_, actionResult] = await Promise.all([
+      sharedPage.waitForResponse(
+        (resp) =>
+          resp.url().includes(ENDPOINTS.GACHA.GET_LIST) &&
+          resp.status() === HTTP_STATUS_CODE.OK,
+      ),
+      action(),
+    ]);
+    return actionResult;
   }
 
   test("TC01: Đồng bộ Total Count & Table Rows (UI vs API)", async () => {
     await ensureGachaPage();
 
-    const apiResponse = await gachaApi.getGachas({
-      method: METHODS.GET,
-      queryParams: {
-        page: 1,
-        items_per_page: 10,
-      },
-    });
-    expect(apiResponse.status()).toBe(200);
-    const body = await apiResponse.json();
+    const body = await fetchGachaApi();
 
     const summaryText = await gachaPage.paginationSummary.innerText().catch(() => "");
     if (summaryText && gachaData.pagination.summaryRegex.test(summaryText)) {
@@ -89,50 +97,38 @@ test.describe.serial("E2E Gacha Management", () => {
   test("TC02: Đồng bộ dữ liệu từng hàng trong Table (UI vs API)", async () => {
     await ensureGachaPage();
 
-    const apiResponse = await gachaApi.getGachas({
-      method: METHODS.GET,
-      queryParams: {
-        page: 1,
-        items_per_page: 10,
-      },
-    });
-    expect(apiResponse.status()).toBe(200);
-    const body = await apiResponse.json();
+    const body = await fetchGachaApi();
 
-    if (body.data.length > 0) {
-      const firstItem = body.data[0];
-      const firstRow = gachaPage.tableRows.first();
+    const rowsCount = await gachaPage.tableRows.count();
+    expect(rowsCount).toBe(body.data.length);
 
-      await expect(firstRow).toContainText(firstItem.id.toString());
-      await expect(firstRow).toContainText(firstItem.name);
+    for (let i = 0; i < body.data.length; i++) {
+      const item = body.data[i];
+      const row = gachaPage.tableRows.nth(i);
 
-      const expectedStatusText = firstItem.status === 1 ? "公開" : "非公開";
-      await expect(firstRow).toContainText(expectedStatusText);
+      await expect(row).toContainText(item.id.toString());
+      await expect(row).toContainText(item.name);
+
+      const expectedStatusText =
+        item.status === apiGachaData.filterParams.status.public
+          ? gachaData.filterOptions.status[1]
+          : gachaData.filterOptions.status[2];
+      await expect(row).toContainText(expectedStatusText);
     }
   });
 
   test("TC03: Tìm kiếm Keyword đồng bộ (UI vs API)", async () => {
     await ensureGachaPage();
 
-    const listResponse = await gachaApi.getGachas({
-      method: METHODS.GET,
-      queryParams: { page: 1, items_per_page: 10 },
-    });
-    const listBody = await listResponse.json();
-    const keyword = listBody.data.length > 0 ? listBody.data[0].name : apiGachaData.filterParams.keyword.valid;
+    const listBody = await fetchGachaApi();
+    const keyword =
+      listBody.data.length > 0
+        ? listBody.data[0].name
+        : apiGachaData.filterParams.keyword.valid;
 
-    await gachaPage.searchModel(keyword);
+    await executeWithApiResponse(() => gachaPage.searchModel(keyword));
 
-    const apiSearchResponse = await gachaApi.getGachas({
-      method: METHODS.GET,
-      queryParams: {
-        page: 1,
-        items_per_page: 10,
-        keyword: keyword,
-      },
-    });
-    expect(apiSearchResponse.status()).toBe(200);
-    const searchBody = await apiSearchResponse.json();
+    const searchBody = await fetchGachaApi({ keyword });
 
     const uiRowsCount = await gachaPage.tableRows.count();
     expect(uiRowsCount).toBe(searchBody.data.length);
@@ -148,21 +144,16 @@ test.describe.serial("E2E Gacha Management", () => {
 
     const statusDropdown = sharedPage.getByRole("combobox").first();
     await statusDropdown.click();
-    await sharedPage.waitForTimeout(300);
-    await sharedPage.getByText(gachaData.filterOptions.status[1], { exact: true }).last().click();
-    await gachaPage.searchButton.click();
-    await sharedPage.waitForTimeout(500);
+    await sharedPage
+      .getByText(gachaData.filterOptions.status[1], { exact: true })
+      .last()
+      .click();
 
-    const apiPublicResponse = await gachaApi.getGachas({
-      method: METHODS.GET,
-      queryParams: {
-        page: 1,
-        items_per_page: 10,
-        status: apiGachaData.filterParams.status.public,
-      },
+    await executeWithApiResponse(() => gachaPage.searchButton.click());
+
+    const publicBody = await fetchGachaApi({
+      status: apiGachaData.filterParams.status.public,
     });
-    expect(apiPublicResponse.status()).toBe(200);
-    const publicBody = await apiPublicResponse.json();
 
     const publicRowsCount = await gachaPage.tableRows.count();
     expect(publicRowsCount).toBe(publicBody.data.length);
@@ -172,43 +163,27 @@ test.describe.serial("E2E Gacha Management", () => {
     await ensureGachaPage();
 
     const invalidKeyword = apiGachaData.filterParams.keyword.invalid;
-    await gachaPage.searchModel(invalidKeyword);
 
-    const apiResponse = await gachaApi.getGachas({
-      method: METHODS.GET,
-      queryParams: {
-        page: 1,
-        items_per_page: 10,
-        keyword: invalidKeyword,
-      },
-    });
-    expect(apiResponse.status()).toBe(200);
-    const body = await apiResponse.json();
+    await executeWithApiResponse(() => gachaPage.searchModel(invalidKeyword));
+
+    const body = await fetchGachaApi({ keyword: invalidKeyword });
 
     expect(body.data).toHaveLength(0);
     expect(body.total_count).toBe(0);
 
-    await expect(sharedPage.getByText(gachaData.labels.noDataMessage)).toBeVisible();
+    await expect(
+      sharedPage.getByText(gachaData.labels.noDataMessage),
+    ).toBeVisible();
   });
 
   test("TC06: Clear Filter khôi phục dữ liệu đồng bộ (UI vs API)", async () => {
     await ensureGachaPage();
 
     await gachaPage.searchInput.fill(apiGachaData.filterParams.keyword.invalid);
-    await gachaPage.searchButton.click();
-    await sharedPage.waitForTimeout(500);
+    await executeWithApiResponse(() => gachaPage.searchButton.click());
+    await executeWithApiResponse(() => gachaPage.clearFilters());
 
-    await gachaPage.clearFilters();
-
-    const apiResponse = await gachaApi.getGachas({
-      method: METHODS.GET,
-      queryParams: {
-        page: 1,
-        items_per_page: 10,
-      },
-    });
-    expect(apiResponse.status()).toBe(200);
-    const body = await apiResponse.json();
+    const body = await fetchGachaApi();
 
     const rowsCount = await gachaPage.tableRows.count();
     expect(rowsCount).toBe(body.data.length);
