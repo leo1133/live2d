@@ -9,10 +9,11 @@ Dự án kiểm thử tự động toàn diện (**UI**, **API**, **E2E**) cho h
 1. [Tổng quan kiến trúc](#-tổng-quan-kiến-trúc)
 2. [Cấu trúc thư mục & Giải thích chi tiết](#-cấu-trúc-thư-mục--giải-thích-chi-tiết)
 3. [Cài đặt & Biến môi trường](#-cài-đặt--biến-môi-trường)
-4. [Hướng dẫn chạy kiểm thử](#-hướng-dẫn-chạy-kiểm-thử)
-5. [Cơ chế Data-Driven Testing (CSV)](#-cơ-chế-data-driven-testing-csv)
-6. [Quản lý Token & Authentication Fixtures](#-quản-lý-token--authentication-fixtures)
-7. [Quy chuẩn & Hướng dẫn mở rộng](#-quy-chuẩn--hướng-dẫn-mở-rộng)
+4. [Chi tiết các Modules tích hợp (DB, CSV, E2E Sync)](#-chi-tiết-các-modules-tích-hợp-db-csv-fixtures)
+5. [Hướng dẫn chạy kiểm thử](#-hướng-dẫn-chạy-kiểm-thử)
+6. [Cơ chế Data-Driven Testing (CSV)](#-cơ-chế-data-driven-testing-csv)
+7. [Quản lý Token & Authentication Fixtures](#-quản-lý-token--authentication-fixtures)
+8. [Quy chuẩn & Hướng dẫn mở rộng](#-quy-chuẩn--hướng-dẫn-mở-rộng)
 
 ---
 
@@ -76,7 +77,7 @@ live2d/
     ├── api/                    # Kiểm thử tầng API (API Integration Tests)
     │   ├── login.api.spec.js   # Test xác thực API (Status code, methods, headers, payload validation)
     │   ├── user.api.spec.js    # Test API User (Happy path, 405 methods, Accept/Auth headers, CSV Data-Driven)
-    │   └── gacha.api.spec.js   # Test API Gacha (Happy path, 405 methods, Accept/Auth headers, CSV Data-Driven)
+    │   └── gacha.api.spec.js   # Test API Gacha (Happy path, 405 methods, Accept/Auth headers, CSV Data-Driven, DB Verification)
     │
     ├── auth/                   # Cache trạng thái xác thực
     │   └── user_dev.json       # Lưu trữ token truy cập tự động cho môi trường Dev
@@ -96,39 +97,103 @@ live2d/
 
 ## ⚙️ Cài đặt & Biến môi trường
 
-### 1. Cài đặt dependencies
+### 1. Danh sách thư viện & Lệnh cài đặt
+
+Dự án sử dụng các gói thư viện sau:
+
+| Thư viện               | Mục đích                                                      | Lệnh cài đặt                      |
+| :--------------------- | :------------------------------------------------------------ | :-------------------------------- |
+| **`@playwright/test`** | Core Test Runner cho UI, API & E2E Testing                    | `npm install -D @playwright/test` |
+| **`dotenv`**           | Quản lý nạp biến môi trường (`.env.dev`, `.env.staging`)      | `npm install -D dotenv`           |
+| **`@types/node`**      | Cung cấp Type definitions cho môi trường Node.js              | `npm install -D @types/node`      |
+| **`pg`**               | PostgreSQL Client hỗ trợ kết nối, query & clean data trong DB | `npm install pg`                  |
+| **`csv-parse`**        | Parser đọc và chuyển đổi file CSV phục vụ Data-Driven Testing | `npm install csv-parse`           |
+
+#### Cài đặt toàn bộ dự án từ đầu:
 
 ```bash
+# 1. Cài đặt tất cả dependencies từ package.json
 npm install
+
+# 2. Cài đặt trình duyệt Playwright (Chromium) & các dependencies hệ thống
 npx playwright install --with-deps chromium
 ```
 
-### 2. Cấu hình biến môi trường
+### 2. Cấu hình biến môi trường (Environment - `dotenv`)
 
-Tạo các file `.env.dev` hoặc `.env.staging` ở thư mục gốc:
+Hệ thống hỗ trợ chạy đa môi trường (Dev, Staging) thông qua cờ `ENV=<env>`. Tạo các file `.env.dev` hoặc `.env.staging` ở thư mục gốc:
 
 ```env
 # URL Cấu hình
-UI_BASE_URL=https://admin-dev.example.com
-API_BASE_URL=https://api-admin-dev.example.com
+UI_BASE_URL=
+API_BASE_URL=
 
-# HTTP Basic Auth (nếu có popup bảo vệ browser)
-BASIC_AUTH_USER=your_basic_auth_user
-BASIC_AUTH_PASS=your_basic_auth_password
+# HTTP Basic Auth (Lớp bảo vệ server / popup trình duyệt)
+BASIC_AUTH_USER=
+BASIC_AUTH_PASS=
 
 # Tài khoản Admin dùng để test
-ADMIN_EMAIL=admin@example.com
-ADMIN_ID=admin
-ADMIN_PASSWORD=your_password
-LOGIN_TYPE=1
+ADMIN_EMAIL=
+ADMIN_ID=
+ADMIN_PASSWORD=
+LOGIN_TYPE=
 
-# Kết nối Database (Tùy chọn cho DB Helper)
-DB_HOST=localhost
-DB_PORT=5432
-DB_USER=postgres
-DB_PASSWORD=postgres
-DB_NAME=live2d_db
+# Kết nối Database PostgreSQL (cho src/utils/db.helper.js)
+DB_HOST=
+DB_PORT=
+DB_NAME=
+DB_USER=
+DB_PASSWORD=
 ```
+
+---
+
+## 🛠 Chi tiết các Modules tích hợp (DB, CSV, Fixtures)
+
+### 1. Quản lý Cơ sở dữ liệu (`pg` - PostgreSQL)
+
+- **Vị trí**: [`src/utils/db.helper.js`](src/utils/db.helper.js)
+- **Chức năng**:
+  - `DBHelper.isConnected()`: Kiểm tra trạng thái kết nối Database (Health check) an toàn, hỗ trợ cơ chế tự động Skip test khi DB offline.
+  - `DBHelper.query(sql, params)`: Thực thi câu lệnh SQL trực tiếp với connection pool.
+  - `DBHelper.getUserByEmail(email)`: Truy vấn dữ liệu người dùng từ database để verify với API/UI.
+  - `DBHelper.deleteUserByEmail(email)`: Xóa / dọn dẹp dữ liệu rác sau khi chạy test.
+  - `DBHelper.getGachaById(id)`: Truy vấn chi tiết 1 Model/Gacha từ bảng `public.three_d_models` (kèm điều kiện `is_deleted = false`).
+  - `DBHelper.getGachaList(options)`: Truy vấn danh sách Model/Gacha từ bảng `public.three_d_models` có phân trang (`LIMIT`/`OFFSET`), bộ lọc (`keyword`, `status`), lọc `is_deleted = false` và sắp xếp chuẩn `ORDER BY id DESC`.
+  - `DBHelper.closePool()`: Đóng connection pool kết nối PostgreSQL.
+
+### 2. Xử lý dữ liệu CSV Data-Driven (`csv-parse`)
+
+- **Vị trí**: [`src/utils/csvHelper.js`](src/utils/csvHelper.js)
+- **Data files**: [`src/test-data/csv/getListUser.csv`](src/test-data/csv/getListUser.csv), [`src/test-data/csv/getListGacha.csv`](src/test-data/csv/getListGacha.csv)
+- **Chức năng**:
+  - `loadUserListCsvCases(path)` / `loadGachaListCsvCases(path)`: Tự động đọc file CSV, parse dữ liệu chuỗi thành kiểu nguyên bản (`number`, `boolean`, `null`, `""`), tạo ma trận test cases tham số hóa cho API.
+
+### 3. Cơ chế Database Verification (API vs DB) & Auto-Skip
+
+- **Áp dụng tại**: [`tests/api/gacha.api.spec.js`](tests/api/gacha.api.spec.js)
+- **Cơ chế so khớp**:
+  - **Total Count & Pagination**: So sánh `total_count` và độ dài mảng dữ liệu trả về từ API với `COUNT(*)` và `LIMIT/OFFSET` từ PostgreSQL.
+  - **Field-by-Field Integrity**: Lấy item từ API, truy vấn trực tiếp từ bảng `public.three_d_models` theo `id` để đối chiếu từng trường (`name`, `status`, `created_at`, `updated_at`...).
+  - **Filter & Search Sync**: Đối chiếu kết quả khi lọc `status` (公開 / 非公開) và tìm kiếm `keyword` giữa API và câu lệnh SQL tương ứng.
+- **Auto-Skip an toàn khi DB Offline**:
+  - Trước khi chạy suite test DB, hệ thống tự động kiểm tra `DBHelper.isConnected()`.
+  - Nếu Database cục bộ chưa được bật hoặc không thể kết nối, test runner sẽ **tự động Skip** nhóm test DB với lý do rõ ràng, đảm bảo toàn bộ các test cases API khác vẫn chạy thành công mà không bị crash/fail.
+
+### 4. Cơ chế kiểm thử E2E & Đồng bộ Dữ liệu (UI vs API)
+
+- **Áp dụng tại**: [`tests/e2e/gacha.e2e.spec.js`](tests/e2e/gacha.e2e.spec.js), [`tests/e2e/user.e2e.spec.js`](tests/e2e/user.e2e.spec.js)
+- **Mô hình kiến trúc**:
+  - **Single Browser Session (`describe.serial`)**: Đăng nhập 1 lần tại `beforeAll` và dùng chung context giúp tăng tốc độ kiểm thử.
+  - **Dynamic Network Synchronization (`executeWithApiResponse`)**: Lắng nghe chính xác thời điểm Backend trả về response `200` qua `page.waitForResponse` thay vì dùng timeout tĩnh, loại bỏ hoàn toàn tình trạng flaky test.
+  - **Clean API Call Abstraction (`fetchGachaApi`)**: Tái sử dụng query parameters mặc định và tự động assert `HTTP_STATUS_CODE.OK`.
+- **Nội dung kiểm thử toàn diện**:
+  1. `TC01`: Đối chiếu **Total Count** & **Số dòng bảng** (UI vs API).
+  2. `TC02`: Đối chiếu chi tiết **từng hàng trong bảng** (`ID`, `Tên Model`, mapping trạng thái `公開`/`非公開`).
+  3. `TC03`: Tìm kiếm **Keyword động** (lấy dữ liệu thực tế từ API để search, verify hàng đầu tiên chứa từ khóa).
+  4. `TC04`: Lọc theo **Trạng thái (Status)** và đối chiếu số bản ghi tương ứng.
+  5. `TC05`: Tìm kiếm **No Data** với từ khóa không tồn tại, kiểm tra message thông báo rỗng.
+  6. `TC06`: **Clear Filter** và khôi phục trạng thái danh sách ban đầu.
 
 ---
 
@@ -136,14 +201,14 @@ DB_NAME=live2d_db
 
 ### 1. Lệnh NPM Scripts có sẵn
 
-| Lệnh                  | Ý nghĩa                                                      |
-| :-------------------- | :----------------------------------------------------------- |
-| `npm run test:dev`    | Chạy toàn bộ test suites trên môi trường **Dev**             |
-| `npm run test:stg`    | Chạy toàn bộ test suites trên môi trường **Staging**         |
-| `npm run test:ui:dev` | Mở giao diện tương tác **Playwright UI Mode** (Dev)          |
-| `npm run test:ui:stg` | Mở giao diện tương tác **Playwright UI Mode** (Staging)      |
-| `npm run report`      | Mở báo cáo kết quả kiểm thử HTML gần nhất                    |
-| `npm run codegen:dev` | Mở công cụ Playwright Codegen để sinh mã selector UI tự động |
+| Lệnh                  | Mô tả                                                        | Chi tiết lệnh thực thi                 |
+| :-------------------- | :----------------------------------------------------------- | :------------------------------------- |
+| `npm run test:dev`    | Chạy toàn bộ test suites trên môi trường **Dev**             | `ENV=dev npx playwright test`          |
+| `npm run test:stg`    | Chạy toàn bộ test suites trên môi trường **Staging**         | `ENV=staging npx playwright test`      |
+| `npm run test:ui:dev` | Mở giao diện tương tác **Playwright UI Mode** (Dev)          | `ENV=dev npx playwright test --ui`     |
+| `npm run test:ui:stg` | Mở giao diện tương tác **Playwright UI Mode** (Staging)      | `ENV=staging npx playwright test --ui` |
+| `npm run report`      | Mở báo cáo kết quả kiểm thử HTML gần nhất                    | `npx playwright show-report`           |
+| `npm run codegen:dev` | Mở công cụ Playwright Codegen để sinh mã selector UI tự động | `ENV=dev npx playwright codegen ...`   |
 
 ### 2. Chạy theo từng nhóm kiểm thử (CLI)
 
@@ -162,6 +227,9 @@ ENV=dev npx playwright test tests/api/user.api.spec.js
 
 # Chạy ở chế độ Debug (có UI từng bước)
 ENV=dev npx playwright test tests/api/login.api.spec.js --debug
+
+# Chạy có hiển thị trình duyệt (Headed mode)
+ENV=dev npx playwright test tests/ui/ --headed
 ```
 
 ---
