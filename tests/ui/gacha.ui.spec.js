@@ -140,7 +140,49 @@ test.describe.serial("UI Gacha (Avatar) Management Suite - AQ100", () => {
       await expect(gachaPage.tableRows.first()).toBeVisible();
     });
 
+<<<<<<< Updated upstream
     test(`TC${tcIndex++} - AQ100-27: Search status không có kết quả`, async () => {
+=======
+    test(`${padTc()}: Kiểm tra khi chọn status = 公開`, async () => {
+      const statusDropdown = sharedPage.getByRole("combobox").first();
+      await statusDropdown.click();
+      await sharedPage.waitForTimeout(300);
+      await sharedPage
+        .getByText(gachaData.filterOptions.status[1], { exact: true })
+        .last()
+        .click();
+      await gachaPage.searchButton.click();
+      await sharedPage.waitForTimeout(500);
+      if ((await gachaPage.tableRows.count()) > 0) {
+        const statusCell = gachaPage.tableRows
+          .first()
+          .locator("td")
+          .nth(gachaData.columnIndices.status);
+        await expect(statusCell).toContainText(gachaData.filterOptions.status[1]);
+      }
+    });
+
+    test(`${padTc()}: Kiểm tra khi chọn status = 非公開`, async () => {
+      const statusDropdown = sharedPage.getByRole("combobox").first();
+      await statusDropdown.click();
+      await sharedPage.waitForTimeout(300);
+      await sharedPage
+        .getByText(gachaData.filterOptions.status[2], { exact: true })
+        .last()
+        .click();
+      await gachaPage.searchButton.click();
+      await sharedPage.waitForTimeout(500);
+      if ((await gachaPage.tableRows.count()) > 0) {
+        const statusCell = gachaPage.tableRows
+          .first()
+          .locator("td")
+          .nth(gachaData.columnIndices.status);
+        await expect(statusCell).toContainText(gachaData.filterOptions.status[2]);
+      }
+    });
+
+    test(`${padTc()}: Kiểm tra khi kết hợp với status`, async () => {
+>>>>>>> Stashed changes
       await gachaPage.searchInput.fill(gachaData.testInputs.invalidModelName);
       const statusDropdown = sharedPage.getByRole('combobox').first();
       await statusDropdown.click();

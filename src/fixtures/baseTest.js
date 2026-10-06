@@ -42,7 +42,18 @@ async function getOrFetchToken(playwright) {
     try {
       const fileContent = fs.readFileSync(authFile, "utf-8");
       const { access_token } = JSON.parse(fileContent);
-      if (access_token) return access_token;
+      if (access_token) {
+        try {
+          const payload = JSON.parse(
+            Buffer.from(access_token.split(".")[1], "base64").toString()
+          );
+          if (payload.exp && payload.exp * 1000 > Date.now() + 10000) {
+            return access_token;
+          }
+        } catch {
+          return access_token;
+        }
+      }
     } catch (e) {
       if (fs.existsSync(authFile)) fs.unlinkSync(authFile);
     }
