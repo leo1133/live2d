@@ -55,7 +55,7 @@ test.describe.serial("UI Gacha Management", () => {
   async function ensureGachaPage() {
     await sharedPage.goto(gachaData.url);
     await gachaPage.searchInput.waitFor({ state: "visible", timeout: 15000 });
-    await sharedPage.waitForTimeout(500);
+    await gachaPage.clearFilters();
   }
 
   // ==================== 1. Sidebar & Breadcrumb ====================
@@ -221,6 +221,7 @@ test.describe.serial("UI Gacha Management", () => {
     });
 
     test(`${padTc()}: Kiểm tra khi chọn status = 全て`, async () => {
+      await gachaPage.clearFilters();
       const statusDropdown = sharedPage.getByRole("combobox").first();
       await statusDropdown.click();
       await sharedPage.waitForTimeout(300);
@@ -233,6 +234,7 @@ test.describe.serial("UI Gacha Management", () => {
     });
 
     test(`${padTc()}: Kiểm tra khi chọn status = 公開`, async () => {
+      await gachaPage.clearFilters();
       const statusDropdown = sharedPage.getByRole("combobox").first();
       await statusDropdown.click();
       await sharedPage.waitForTimeout(300);
@@ -241,7 +243,11 @@ test.describe.serial("UI Gacha Management", () => {
         .last()
         .click();
       await gachaPage.searchButton.click();
-      if ((await gachaPage.tableRows.count()) > 0) {
+      await sharedPage.waitForTimeout(500);
+      const isNoData = await sharedPage
+        .getByText(gachaData.labels.noDataMessage)
+        .isVisible();
+      if (!isNoData && (await gachaPage.tableRows.count()) > 0) {
         const statusText = await gachaPage.getCellText(
           0,
           gachaData.columnIndices.status,
@@ -251,6 +257,7 @@ test.describe.serial("UI Gacha Management", () => {
     });
 
     test(`${padTc()}: Kiểm tra khi chọn status = 非公開`, async () => {
+      await gachaPage.clearFilters();
       const statusDropdown = sharedPage.getByRole("combobox").first();
       await statusDropdown.click();
       await sharedPage.waitForTimeout(300);
@@ -259,7 +266,11 @@ test.describe.serial("UI Gacha Management", () => {
         .last()
         .click();
       await gachaPage.searchButton.click();
-      if ((await gachaPage.tableRows.count()) > 0) {
+      await sharedPage.waitForTimeout(500);
+      const isNoData = await sharedPage
+        .getByText(gachaData.labels.noDataMessage)
+        .isVisible();
+      if (!isNoData && (await gachaPage.tableRows.count()) > 0) {
         const statusText = await gachaPage.getCellText(
           0,
           gachaData.columnIndices.status,
