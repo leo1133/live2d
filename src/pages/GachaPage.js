@@ -38,7 +38,7 @@ export class GachaPage {
     });
 
     this.dataTable = page.getByRole("table");
-    this.tableRows = this.dataTable.locator("tbody tr");
+    this.tableRows = this.dataTable.locator("tbody tr:not(.ant-table-placeholder)");
     this.columnStatus = page.getByRole("columnheader", {
       name: gachaData.labels.statusColumn,
       exact: true,
@@ -106,8 +106,10 @@ export class GachaPage {
    * @returns {Promise<string>}
    */
   async getCellText(rowIndex, colIndex) {
+    if ((await this.tableRows.count()) <= rowIndex) return "";
     const row = this.tableRows.nth(rowIndex);
     const cell = row.locator("td").nth(colIndex);
+    if ((await cell.count()) === 0) return "";
     return (await cell.innerText()).trim();
   }
 }
