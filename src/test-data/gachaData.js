@@ -16,6 +16,8 @@ export const gachaData = {
     statusColumn: "ステータス",
     idColumn: "ID",
     modelNameColumn: "モデル名",
+    limitedColumn: "期間限定",
+    normalColumn: "ノーマル",
     limitedLabel: "期間限定",
     normalLabel: "ノーマル",
     initialSettingLabel: "初期設定",
@@ -23,8 +25,24 @@ export const gachaData = {
     prevPage: "前",
     noDataMessage: "一致する結果はありません。",
   },
+  columnIndices: {
+    id: 0,
+    modelName: 1,
+    status: 2,
+    limited: 3,
+    normal: 4,
+  },
   selectors: {
     editIcon: "svg, i, .icon-edit",
+    tableCell: "td",
+  },
+  editAriaLabels: {
+    limitedRegex: /の期間限定ガチャを編集/,
+    normalRegex: /のノーマルガチャを編集/,
+  },
+  editHeadings: {
+    limitedRegex: /の期間限定アバターガチャ/,
+    normalRegex: /のノーマルアバターガチャ/,
   },
   filterOptions: {
     status: ["全て", "公開", "非公開"],
@@ -48,6 +66,7 @@ export const gachaData = {
     { id: "11", type: "khoảng trắng giữa", val: "Te st" },
   ],
   pagination: {
+    defaultPageSize: 10,
     summaryLocatorRegex: /全 .* 件中 .* 件を表示/,
     summaryRegex:
       /全 (\d{1,3}(?:,\d{3})*) 件中 (\d{1,3}(?:,\d{3})*)〜(\d{1,3}(?:,\d{3})*) 件を表示/,

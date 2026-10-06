@@ -1,6 +1,11 @@
+import dotenv from "dotenv";
+import path from "path";
 import { HTTP_STATUS_CODE, CONTENT_TYPE } from "../utils/constants.js";
 
-const ERROR_MESSAGES = {
+const ENV = process.env.ENV || "dev";
+dotenv.config({ path: path.resolve(process.cwd(), `.env.${ENV}`) });
+
+export const ERROR_MESSAGES = {
   UNAUTHORIZED:
     "メールアドレス・IDまたはパスワードが一致しません。もう一度入力してください。",
   EMAIL_REQUIRED: "メール/IDは空欄にできません。",
@@ -36,18 +41,30 @@ export const loginData = {
   },
 
   credentials: {
-    account: process.env.ADMIN_EMAIL,
-    password: process.env.ADMIN_PASSWORD,
-    accountId: process.env.ADMIN_ID,
+    get account() {
+      return process.env.ADMIN_EMAIL || "admin@admin.com";
+    },
+    get password() {
+      return process.env.ADMIN_PASSWORD || "!Ch4ng3Th1sP4ssW0rd!";
+    },
+    get accountId() {
+      return process.env.ADMIN_ID || "admin";
+    },
     textLoginSuccess: "Surreal Dolls - ダッシュボード",
     wrongPassword: "12345678",
     wrongEmail: "admin1@gmail.com",
   },
 
   apiCredentials: {
-    email_user_id: process.env.ADMIN_EMAIL,
-    password: process.env.ADMIN_PASSWORD,
-    login_type: Number(process.env.LOGIN_TYPE) || 1,
+    get email_user_id() {
+      return process.env.ADMIN_EMAIL || "admin@admin.com";
+    },
+    get password() {
+      return process.env.ADMIN_PASSWORD || "!Ch4ng3Th1sP4ssW0rd!";
+    },
+    get login_type() {
+      return Number(process.env.LOGIN_TYPE) || 1;
+    },
   },
 
   validateEmail: {
@@ -75,10 +92,9 @@ export const loginData = {
   },
 
   messages: {
-    accountRequired: "メール/IDは空欄にできません。",
-    passwordRequired: "パスワードは空欄にできません。",
-    invalidCredentials:
-      "メールアドレス・IDまたはパスワードが一致しません。もう一度入力してください。",
+    accountRequired: ERROR_MESSAGES.EMAIL_REQUIRED,
+    passwordRequired: ERROR_MESSAGES.PASSWORD_REQUIRED,
+    invalidCredentials: ERROR_MESSAGES.UNAUTHORIZED,
   },
 
   expectedResponses: {
@@ -127,11 +143,15 @@ export const invalidContentTypePayloads = [
   { type: "text/plain", payload: "email=admin@example.com&password=123" },
   {
     type: "application/x-www-form-urlencoded",
-    payload: `email_user_id=${loginData.apiCredentials.email_user_id}&password=${loginData.apiCredentials.password}`,
+    get payload() {
+      return `email_user_id=${loginData.apiCredentials.email_user_id}&password=${loginData.apiCredentials.password}`;
+    },
   },
   {
     type: "application/xml",
-    payload: `<xml><email>${loginData.apiCredentials.email_user_id}</email><password>${loginData.apiCredentials.password}</password></xml>`,
+    get payload() {
+      return `<xml><email>${loginData.apiCredentials.email_user_id}</email><password>${loginData.apiCredentials.password}</password></xml>`;
+    },
   },
 ];
 

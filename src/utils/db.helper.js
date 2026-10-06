@@ -11,6 +11,21 @@ const pool = new Pool({
 
 export class DBHelper {
   /**
+   * Kiểm tra trạng thái kết nối Database (Health check)
+   * @returns {Promise<boolean>}
+   */
+  static async isConnected() {
+    try {
+      const client = await pool.connect();
+      client.release();
+      return true;
+    } catch (e) {
+      console.warn(`⚠️ [DB] Database không khả dụng: ${e.message}`);
+      return false;
+    }
+  }
+
+  /**
    * Thực thi câu lệnh SQL trực tiếp
    * @param {string} queryText
    * @param {Array} params
