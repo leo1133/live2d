@@ -43,8 +43,6 @@ export class DBHelper {
   }
 
   /**
-<<<<<<< Updated upstream
-=======
    * Lấy thông tin chi tiết 1 Model/Gacha theo ID (chưa bị xóa)
    * @param {number|string} id
    */
@@ -104,7 +102,6 @@ export class DBHelper {
   }
 
   /**
->>>>>>> Stashed changes
    * Đóng toàn bộ kết nối khi xong
    */
   static async closePool() {

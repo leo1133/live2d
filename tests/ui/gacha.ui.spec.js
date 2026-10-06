@@ -140,10 +140,7 @@ test.describe.serial("UI Gacha (Avatar) Management Suite - AQ100", () => {
       await expect(gachaPage.tableRows.first()).toBeVisible();
     });
 
-<<<<<<< Updated upstream
-    test(`TC${tcIndex++} - AQ100-27: Search status không có kết quả`, async () => {
-=======
-    test(`${padTc()}: Kiểm tra khi chọn status = 公開`, async () => {
+    test(`TC${tcIndex++} - AQ100-25: Kiểm tra khi chọn status = 公開`, async () => {
       const statusDropdown = sharedPage.getByRole("combobox").first();
       await statusDropdown.click();
       await sharedPage.waitForTimeout(300);
@@ -162,7 +159,7 @@ test.describe.serial("UI Gacha (Avatar) Management Suite - AQ100", () => {
       }
     });
 
-    test(`${padTc()}: Kiểm tra khi chọn status = 非公開`, async () => {
+    test(`TC${tcIndex++} - AQ100-26: Kiểm tra khi chọn status = 非公開`, async () => {
       const statusDropdown = sharedPage.getByRole("combobox").first();
       await statusDropdown.click();
       await sharedPage.waitForTimeout(300);
@@ -181,8 +178,7 @@ test.describe.serial("UI Gacha (Avatar) Management Suite - AQ100", () => {
       }
     });
 
-    test(`${padTc()}: Kiểm tra khi kết hợp với status`, async () => {
->>>>>>> Stashed changes
+    test(`TC${tcIndex++} - AQ100-27: Search kết hợp keyword và status không có kết quả`, async () => {
       await gachaPage.searchInput.fill(gachaData.testInputs.invalidModelName);
       const statusDropdown = sharedPage.getByRole('combobox').first();
       await statusDropdown.click();
