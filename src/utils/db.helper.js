@@ -32,7 +32,6 @@ export class DBHelper {
    */
   static async query(queryText, params = []) {
     const client = await pool.connect();
-    console.log("Connect db successfully!");
     try {
       const res = await client.query(queryText, params);
       return res;
@@ -80,7 +79,7 @@ export class DBHelper {
    */
   static async getGachaList({ page = 1, itemsPerPage = 10, keyword = "", status = null } = {}) {
     const offset = (Number(page) - 1) * Number(itemsPerPage);
-    const conditions = ["is_deleted = false"];
+    const conditions = ["is_deleted = false", "(image_filename ILIKE '%.png' OR image_path ILIKE '%.png')"];
     const params = [];
 
     if (status !== null && status !== undefined && status !== "") {

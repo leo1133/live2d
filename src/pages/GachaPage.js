@@ -98,4 +98,16 @@ export class GachaPage {
     await this.clearButton.click();
     await this.page.waitForTimeout(500);
   }
+
+  /**
+   * Lấy nội dung text của ô tại (rowIndex, colIndex)
+   * @param {number} rowIndex
+   * @param {number} colIndex
+   * @returns {Promise<string>}
+   */
+  async getCellText(rowIndex, colIndex) {
+    const row = this.tableRows.nth(rowIndex);
+    const cell = row.locator("td").nth(colIndex);
+    return (await cell.innerText()).trim();
+  }
 }
