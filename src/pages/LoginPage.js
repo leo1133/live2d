@@ -23,9 +23,7 @@ export class LoginPage {
       exact: true,
     });
 
-    this.toastErrorMsg = page
-      .getByRole("listitem")
-      .filter({ hasText: loginData.messages.invalidCredentials });
+    this.toastErrorMsg = page.getByText(loginData.messages.invalidCredentials);
   }
 
   async goto() {
@@ -70,13 +68,22 @@ export class LoginPage {
 
   async verifyLoginSuccess(expectedTitle) {
     try {
-      await expect(this.page).toHaveTitle(expectedTitle, { timeout: 15000 });
+      await Promise.race([
+        this.page.waitForURL((url) => !url.pathname.includes("/sign-in"), {
+          timeout: 15000,
+          waitUntil: "domcontentloaded",
+        }),
+        expect(this.page).toHaveTitle(expectedTitle, { timeout: 15000 }),
+      ]);
+      await this.page.waitForTimeout(500);
     } catch (e) {
       const toastLocators = this.page.locator(
         '[data-sonner-toast], [data-title], [data-description], [role="alert"], [role="status"], section[aria-label*="Notifications"] *',
       );
       const texts = await toastLocators.allInnerTexts().catch(() => []);
-      const uniqueTexts = [...new Set(texts.map((t) => t.trim()).filter(Boolean))];
+      const uniqueTexts = [
+        ...new Set(texts.map((t) => t.trim()).filter(Boolean)),
+      ];
       console.error("\n[LOGIN FAILED - URL]:", this.page.url());
       console.error("[LOGIN FAILED - TOASTS]:", uniqueTexts, "\n");
       throw e;

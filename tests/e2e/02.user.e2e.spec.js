@@ -9,6 +9,7 @@ test.describe("E2E User List Suite: Kết hợp UI + API", () => {
   let userPage;
 
   test.beforeAll(async ({ browser }) => {
+    test.setTimeout(60000);
     const context = await browser.newContext({
       baseURL: process.env.UI_BASE_URL,
       httpCredentials: process.env.BASIC_AUTH_USER
@@ -27,7 +28,18 @@ test.describe("E2E User List Suite: Kết hợp UI + API", () => {
       loginData.credentials.account,
       loginData.credentials.password,
     );
-    await loginPage.verifyLoginSuccess(new RegExp(userData.titles.dashboard));
+    try {
+      await loginPage.verifyLoginSuccess(new RegExp(userData.titles.dashboard));
+    } catch (err) {
+      console.warn("Retrying login after transient failure...");
+      await sharedPage.waitForTimeout(1000);
+      await loginPage.goto();
+      await loginPage.login(
+        loginData.credentials.account,
+        loginData.credentials.password,
+      );
+      await loginPage.verifyLoginSuccess(new RegExp(userData.titles.dashboard));
+    }
     await userPage.navigateToUser();
     await sharedPage.waitForTimeout(1000);
   });

@@ -1,3 +1,4 @@
+import { expect } from "@playwright/test";
 import { userData } from "../test-data/userData.js";
 
 export class UserPage {
@@ -33,18 +34,16 @@ export class UserPage {
       name: userData.labels.pageHeading,
     });
 
-    this.searchInput = page.getByPlaceholder(
-      userData.labels.searchInputPlaceholder,
-    );
-    this.statusFilterDropdown = page
-      .getByRole("combobox")
-      .filter({ hasText: userData.labels.statusFilter });
+    this.searchInput = page
+      .getByPlaceholder(userData.labels.searchInputPlaceholder)
+      .first();
+    this.statusFilterDropdown = page.locator('button[role="combobox"]').nth(0);
     this.affiliationFilterDropdown = page
-      .getByRole("combobox")
-      .filter({ hasText: userData.labels.affiliationFilter });
+      .locator('button[role="combobox"]')
+      .nth(1);
     this.liverTypeFilterDropdown = page
-      .getByRole("combobox")
-      .filter({ hasText: userData.labels.liverTypeFilter });
+      .locator('button[role="combobox"]')
+      .nth(2);
 
     this.searchButton = page.getByRole("button", {
       name: userData.labels.searchButton,
@@ -88,7 +87,14 @@ export class UserPage {
     if (!(await this.userLink.isVisible())) {
       await this.toggleSidebarButton.click();
     }
-    await this.userLink.click();
+
+    await Promise.all([
+      this.page.waitForURL(`**${userData.url}**`),
+      this.userLink.click(),
+    ]);
+
+    await this.searchInput.waitFor({ state: "visible" });
+    await this.page.waitForTimeout(500);
   }
 
   /**
@@ -114,7 +120,7 @@ export class UserPage {
     affiliationOption,
     liverTypeOption,
   } = {}) {
-    if (usernameOrId) {
+    if (usernameOrId !== undefined) {
       await this.searchInput.fill(usernameOrId);
     }
     if (statusOption) {
@@ -129,7 +135,13 @@ export class UserPage {
       await this.liverTypeFilterDropdown.click();
       await this.page.getByRole("option", { name: liverTypeOption }).click();
     }
-    await this.searchButton.click();
+    const isSearchEnabled = await this.searchButton
+      .isEnabled({ timeout: 1000 })
+      .catch(() => false);
+    if (isSearchEnabled) {
+      await this.searchButton.click();
+      await this.page.waitForTimeout(500);
+    }
   }
 
   /**
@@ -137,8 +149,13 @@ export class UserPage {
    */
   async clearFilters() {
     try {
-      await this.clearButton.click({ timeout: 2000 });
-    } catch (e) {
-    }
+      const isClearEnabled = await this.clearButton
+        .isEnabled({ timeout: 1000 })
+        .catch(() => false);
+      if (isClearEnabled) {
+        await this.clearButton.click({ timeout: 2000 });
+        await this.page.waitForTimeout(300);
+      }
+    } catch (e) {}
   }
 }

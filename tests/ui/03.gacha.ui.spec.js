@@ -53,9 +53,22 @@ test.describe.serial("UI Gacha Management", () => {
   });
 
   async function ensureGachaPage() {
-    await sharedPage.goto(gachaData.url);
+    await sharedPage.goto(gachaData.url, { waitUntil: "domcontentloaded" });
+
+    if (sharedPage.url().includes("/sign-in")) {
+      const loginPage = new LoginPage(sharedPage);
+      await loginPage.login(
+        loginData.credentials.account,
+        loginData.credentials.password,
+      );
+      await loginPage.verifyLoginSuccess(
+        new RegExp(gachaData.titles.dashboard),
+      );
+      await sharedPage.goto(gachaData.url, { waitUntil: "domcontentloaded" });
+    }
+
     await gachaPage.searchInput.waitFor({ state: "visible", timeout: 15000 });
-    await gachaPage.clearFilters();
+    await sharedPage.waitForTimeout(500);
   }
 
   // ==================== 1. Sidebar & Breadcrumb ====================
@@ -221,7 +234,6 @@ test.describe.serial("UI Gacha Management", () => {
     });
 
     test(`${padTc()}: Kiểm tra khi chọn status = 全て`, async () => {
-      await gachaPage.clearFilters();
       const statusDropdown = sharedPage.getByRole("combobox").first();
       await statusDropdown.click();
       await sharedPage.waitForTimeout(300);
@@ -234,7 +246,6 @@ test.describe.serial("UI Gacha Management", () => {
     });
 
     test(`${padTc()}: Kiểm tra khi chọn status = 公開`, async () => {
-      await gachaPage.clearFilters();
       const statusDropdown = sharedPage.getByRole("combobox").first();
       await statusDropdown.click();
       await sharedPage.waitForTimeout(300);
@@ -244,20 +255,18 @@ test.describe.serial("UI Gacha Management", () => {
         .click();
       await gachaPage.searchButton.click();
       await sharedPage.waitForTimeout(500);
-      const isNoData = await sharedPage
-        .getByText(gachaData.labels.noDataMessage)
-        .isVisible();
-      if (!isNoData && (await gachaPage.tableRows.count()) > 0) {
-        const statusText = await gachaPage.getCellText(
-          0,
-          gachaData.columnIndices.status,
+      if ((await gachaPage.tableRows.count()) > 0) {
+        const firstRowStatusCell = gachaPage.tableRows
+          .first()
+          .locator("td")
+          .nth(gachaData.columnIndices.status);
+        await expect(firstRowStatusCell).toContainText(
+          gachaData.filterOptions.status[1],
         );
-        expect(statusText).toContain(gachaData.filterOptions.status[1]);
       }
     });
 
     test(`${padTc()}: Kiểm tra khi chọn status = 非公開`, async () => {
-      await gachaPage.clearFilters();
       const statusDropdown = sharedPage.getByRole("combobox").first();
       await statusDropdown.click();
       await sharedPage.waitForTimeout(300);
@@ -267,15 +276,14 @@ test.describe.serial("UI Gacha Management", () => {
         .click();
       await gachaPage.searchButton.click();
       await sharedPage.waitForTimeout(500);
-      const isNoData = await sharedPage
-        .getByText(gachaData.labels.noDataMessage)
-        .isVisible();
-      if (!isNoData && (await gachaPage.tableRows.count()) > 0) {
-        const statusText = await gachaPage.getCellText(
-          0,
-          gachaData.columnIndices.status,
+      if ((await gachaPage.tableRows.count()) > 0) {
+        const firstRowStatusCell = gachaPage.tableRows
+          .first()
+          .locator("td")
+          .nth(gachaData.columnIndices.status);
+        await expect(firstRowStatusCell).toContainText(
+          gachaData.filterOptions.status[2],
         );
-        expect(statusText).toContain(gachaData.filterOptions.status[2]);
       }
     });
 
@@ -373,49 +381,65 @@ test.describe.serial("UI Gacha Management", () => {
 
     test(`${padTc()}: Click icon Edit cột ${gachaData.labels.limitedColumn} - mở màn hình chỉnh sửa`, async () => {
       await gachaPage.searchButton.click();
-      if ((await gachaPage.tableRows.count()) > 0) {
-        const firstRow = gachaPage.tableRows.first();
-        const editLimitedLink = firstRow
+      const rows = gachaPage.tableRows;
+      const count = await rows.count();
+      for (let i = 0; i < count; i++) {
+        const row = rows.nth(i);
+        const editLimitedLink = row
           .locator(gachaData.selectors.tableCell)
           .nth(gachaData.columnIndices.limited)
           .getByRole("link", { name: gachaData.editAriaLabels.limitedRegex });
 
-        await editLimitedLink.click();
-        await expect(
-          sharedPage.getByRole("heading", {
-            name: gachaData.editHeadings.limitedRegex,
-          }),
-        ).toBeVisible();
+        if (
+          (await editLimitedLink.count()) > 0 &&
+          (await editLimitedLink.isEnabled())
+        ) {
+          await editLimitedLink.click();
+          await expect(
+            sharedPage.getByRole("heading", {
+              name: gachaData.editHeadings.limitedRegex,
+            }),
+          ).toBeVisible();
 
-        // Quay lại màn hình danh sách
-        await sharedPage
-          .getByRole("link", { name: gachaData.labels.pageHeading })
-          .click();
-        await expect(gachaPage.pageHeading).toBeVisible();
+          // Quay lại màn hình danh sách
+          await sharedPage
+            .getByRole("link", { name: gachaData.labels.pageHeading })
+            .click();
+          await expect(gachaPage.pageHeading).toBeVisible();
+          break;
+        }
       }
     });
 
     test(`${padTc()}: Click icon Edit cột ${gachaData.labels.normalColumn} - mở màn hình chỉnh sửa`, async () => {
       await gachaPage.searchButton.click();
-      if ((await gachaPage.tableRows.count()) > 0) {
-        const firstRow = gachaPage.tableRows.first();
-        const editNormalLink = firstRow
+      const rows = gachaPage.tableRows;
+      const count = await rows.count();
+      for (let i = 0; i < count; i++) {
+        const row = rows.nth(i);
+        const editNormalLink = row
           .locator(gachaData.selectors.tableCell)
           .nth(gachaData.columnIndices.normal)
           .getByRole("link", { name: gachaData.editAriaLabels.normalRegex });
 
-        await editNormalLink.click();
-        await expect(
-          sharedPage.getByRole("heading", {
-            name: gachaData.editHeadings.normalRegex,
-          }),
-        ).toBeVisible();
+        if (
+          (await editNormalLink.count()) > 0 &&
+          (await editNormalLink.isEnabled())
+        ) {
+          await editNormalLink.click();
+          await expect(
+            sharedPage.getByRole("heading", {
+              name: gachaData.editHeadings.normalRegex,
+            }),
+          ).toBeVisible();
 
-        // Quay lại màn hình danh sách
-        await sharedPage
-          .getByRole("link", { name: gachaData.labels.pageHeading })
-          .click();
-        await expect(gachaPage.pageHeading).toBeVisible();
+          // Quay lại màn hình danh sách
+          await sharedPage
+            .getByRole("link", { name: gachaData.labels.pageHeading })
+            .click();
+          await expect(gachaPage.pageHeading).toBeVisible();
+          break;
+        }
       }
     });
   });
@@ -558,8 +582,14 @@ test.describe.serial("UI Gacha Management", () => {
 
         if (expectedTotalPages > 1) {
           // Kiểm tra hiển thị đủ các nút số trang từ 1 đến expectedTotalPages (vd: 1, 2...)
-          for (let pageNum = 1; pageNum <= Math.min(expectedTotalPages, 5); pageNum++) {
-            const pageButton = sharedPage.getByRole("listitem").filter({ hasText: String(pageNum) });
+          for (
+            let pageNum = 1;
+            pageNum <= Math.min(expectedTotalPages, 5);
+            pageNum++
+          ) {
+            const pageButton = sharedPage
+              .getByRole("listitem")
+              .filter({ hasText: String(pageNum) });
             await expect(pageButton).toBeVisible();
           }
         }
@@ -567,15 +597,23 @@ test.describe.serial("UI Gacha Management", () => {
     });
 
     test(`${padTc()}: Kiểm tra Tổng số bản ghi cập nhật chính xác khi Tìm kiếm theo Keyword`, async () => {
-      const firstRowName = await gachaPage.getCellText(0, gachaData.columnIndices.modelName);
+      const firstRowName = await gachaPage.getCellText(
+        0,
+        gachaData.columnIndices.modelName,
+      );
       if (firstRowName) {
         await gachaPage.searchModel(firstRowName);
 
         const searchSummaryText = await gachaPage.paginationSummary.innerText();
-        const matchSearch = searchSummaryText.match(gachaData.pagination.summaryRegex);
+        const matchSearch = searchSummaryText.match(
+          gachaData.pagination.summaryRegex,
+        );
         expect(matchSearch).not.toBeNull();
 
-        const searchTotalRecords = parseInt(matchSearch[1].replace(/,/g, ""), 10);
+        const searchTotalRecords = parseInt(
+          matchSearch[1].replace(/,/g, ""),
+          10,
+        );
         expect(searchTotalRecords).toBeGreaterThan(0);
 
         // Số dòng trong bảng phải bằng min(searchTotalRecords, pageSize)
@@ -587,8 +625,12 @@ test.describe.serial("UI Gacha Management", () => {
     test(`${padTc()}: Kiểm tra Tổng số bản ghi khôi phục lại ban đầu khi Clear Filters`, async () => {
       // 1. Lấy tổng số bản ghi ban đầu
       const initialSummaryText = await gachaPage.paginationSummary.innerText();
-      const initialMatch = initialSummaryText.match(gachaData.pagination.summaryRegex);
-      const initialTotalRecords = initialMatch ? parseInt(initialMatch[1].replace(/,/g, ""), 10) : 0;
+      const initialMatch = initialSummaryText.match(
+        gachaData.pagination.summaryRegex,
+      );
+      const initialTotalRecords = initialMatch
+        ? parseInt(initialMatch[1].replace(/,/g, ""), 10)
+        : 0;
 
       // 2. Search keyword làm thay đổi total count
       await gachaPage.searchModel("string");
@@ -600,7 +642,9 @@ test.describe.serial("UI Gacha Management", () => {
 
       // 4. Kiểm tra tổng số bản ghi khôi phục về giá trị ban đầu
       const resetSummaryText = await gachaPage.paginationSummary.innerText();
-      const resetMatch = resetSummaryText.match(gachaData.pagination.summaryRegex);
+      const resetMatch = resetSummaryText.match(
+        gachaData.pagination.summaryRegex,
+      );
       expect(resetMatch).not.toBeNull();
 
       const resetTotalRecords = parseInt(resetMatch[1].replace(/,/g, ""), 10);

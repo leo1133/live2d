@@ -1,14 +1,6 @@
 export const userData = {
-  get url() {
-    return process.env.UI_BASE_URL
-      ? `${process.env.UI_BASE_URL.replace(/\/$/, "")}/users`
-      : "/users";
-  },
-  get dashboardUrl() {
-    return process.env.UI_BASE_URL
-      ? `${process.env.UI_BASE_URL.replace(/\/$/, "")}/`
-      : "/";
-  },
+  url: "/users",
+  dashboardUrl: "/",
   titles: {
     dashboard: "ダッシュボード",
   },
@@ -29,7 +21,7 @@ export const userData = {
     liverTypeFilter: "すべて(ライバー種類)",
     searchButton: "検索",
     clearButton: "クリア",
-    noDataMessage: "一致する結果はありません。",
+    noDataMessage: "一致する検索結果はありません。",
   },
   filterOptions: {
     status: ["全ステータス", "利用中", "停止中", "退会済み"],
