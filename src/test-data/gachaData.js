@@ -23,7 +23,7 @@ export const gachaData = {
     initialSettingLabel: "初期設定",
     nextPage: "次",
     prevPage: "前",
-    noDataMessage: "一致する結果はありません。",
+    noDataMessage: "一致する検索結果はありません。",
   },
   columnIndices: {
     id: 0,

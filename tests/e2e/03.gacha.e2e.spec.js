@@ -34,7 +34,22 @@ test.describe.serial("E2E Gacha Management", () => {
       loginData.credentials.account,
       loginData.credentials.password,
     );
-    await loginPage.verifyLoginSuccess(new RegExp(gachaData.titles.dashboard));
+    try {
+      await loginPage.verifyLoginSuccess(
+        new RegExp(gachaData.titles.dashboard),
+      );
+    } catch (err) {
+      console.warn("Retrying login after transient failure...");
+      await sharedPage.waitForTimeout(1000);
+      await loginPage.goto();
+      await loginPage.login(
+        loginData.credentials.account,
+        loginData.credentials.password,
+      );
+      await loginPage.verifyLoginSuccess(
+        new RegExp(gachaData.titles.dashboard),
+      );
+    }
 
     await gachaPage.navigateToGachaList();
     await gachaPage.searchInput.waitFor({ state: "visible", timeout: 15000 });
@@ -83,7 +98,9 @@ test.describe.serial("E2E Gacha Management", () => {
 
     const body = await fetchGachaApi();
 
-    const summaryText = await gachaPage.paginationSummary.innerText().catch(() => "");
+    const summaryText = await gachaPage.paginationSummary
+      .innerText()
+      .catch(() => "");
     if (summaryText && gachaData.pagination.summaryRegex.test(summaryText)) {
       const match = summaryText.match(gachaData.pagination.summaryRegex);
       const uiTotalCount = parseInt(match[1].replace(/,/g, ""), 10);

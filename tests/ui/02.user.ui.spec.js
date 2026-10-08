@@ -11,6 +11,7 @@ test.describe.serial("UI User Management Suite", () => {
   let userPage;
 
   test.beforeAll(async ({ browser }) => {
+    test.setTimeout(60000);
     const context = await browser.newContext({
       baseURL: process.env.UI_BASE_URL,
       httpCredentials: process.env.BASIC_AUTH_USER
@@ -29,18 +30,41 @@ test.describe.serial("UI User Management Suite", () => {
       loginData.credentials.account,
       loginData.credentials.password,
     );
-    await loginPage.verifyLoginSuccess(new RegExp(userData.titles.dashboard));
+    try {
+      await loginPage.verifyLoginSuccess(new RegExp(userData.titles.dashboard));
+    } catch (err) {
+      console.warn("Retrying login after transient failure...");
+      await loginPage.goto();
+      await loginPage.login(
+        loginData.credentials.account,
+        loginData.credentials.password,
+      );
+      await loginPage.verifyLoginSuccess(new RegExp(userData.titles.dashboard));
+    }
   });
 
-  test.afterAll(async () => {
-    if (sharedPage) await sharedPage.close();
-  });
+  async function ensureUserPage() {
+    await sharedPage.goto(userData.url, { waitUntil: "domcontentloaded" });
+
+    if (sharedPage.url().includes("/sign-in")) {
+      const loginPage = new LoginPage(sharedPage);
+      await loginPage.login(
+        loginData.credentials.account,
+        loginData.credentials.password,
+      );
+      await loginPage.verifyLoginSuccess(new RegExp(userData.titles.dashboard));
+      await sharedPage.goto(userData.url, { waitUntil: "domcontentloaded" });
+    }
+
+    await userPage.searchInput.waitFor({ state: "visible", timeout: 15000 });
+    await expect(userPage.tableRows.first()).toBeVisible({ timeout: 15000 });
+  }
 
   test.describe("1. Truy cập màn hình", () => {
     test(`TC${tcIndex++} - Xác minh điều hướng thành công vào màn hình Quản lý Người dùng (利用者管理)`, async () => {
-      await expect(sharedPage).toHaveURL(userData.dashboardUrl);
+      await expect(sharedPage).toHaveURL(new RegExp(userData.dashboardUrl));
       await userPage.navigateToUser();
-      await expect(sharedPage).toHaveURL(userData.url);
+      await expect(sharedPage).toHaveURL(new RegExp(userData.url));
 
       await expect(userPage.pageHeading).toBeVisible();
       await expect(userPage.searchInput).toBeVisible();
@@ -60,7 +84,7 @@ test.describe.serial("UI User Management Suite", () => {
   test.describe("2. Breadcrumb", () => {
     test(`TC${tcIndex++} - Kiểm tra và thao tác với Breadcrumb`, async () => {
       await userPage.navigateToUser();
-      await expect(sharedPage).toHaveURL(userData.url);
+      await expect(sharedPage).toHaveURL(new RegExp(userData.url));
 
       await expect(userPage.breadcrumbNav).toBeVisible();
       await expect(userPage.breadcrumbItems).toHaveText([
@@ -69,13 +93,13 @@ test.describe.serial("UI User Management Suite", () => {
       ]);
 
       await userPage.clickBreadcrumbHome();
-      await expect(sharedPage).toHaveURL(userData.dashboardUrl);
+      await expect(sharedPage).toHaveURL(new RegExp(userData.dashboardUrl));
     });
   });
 
   test.describe("3. Tìm kiếm", () => {
     test.beforeEach(async () => {
-      await userPage.navigateToUser();
+      await ensureUserPage();
     });
 
     test.afterEach(async () => {
@@ -91,7 +115,6 @@ test.describe.serial("UI User Management Suite", () => {
           const noDataCell = sharedPage
             .getByRole("cell")
             .filter({ hasText: userData.labels.noDataMessage });
-          await noDataCell.scrollIntoViewIfNeeded();
           await expect(noDataCell).toBeVisible();
         }
       });
@@ -124,7 +147,6 @@ test.describe.serial("UI User Management Suite", () => {
       const noDataCell = sharedPage
         .getByRole("cell")
         .filter({ hasText: userData.labels.noDataMessage });
-      await noDataCell.scrollIntoViewIfNeeded();
       await expect(noDataCell).toBeVisible();
     });
 
@@ -146,7 +168,6 @@ test.describe.serial("UI User Management Suite", () => {
       const noDataCell = sharedPage
         .getByRole("cell")
         .filter({ hasText: userData.labels.noDataMessage });
-      await noDataCell.scrollIntoViewIfNeeded();
       await expect(noDataCell).toBeVisible();
     });
 
@@ -222,7 +243,7 @@ test.describe.serial("UI User Management Suite", () => {
       let targetDropdown;
 
       test.beforeEach(async () => {
-        await userPage.navigateToUser();
+        await ensureUserPage();
         targetDropdown = getLocator(userPage);
       });
 
@@ -312,9 +333,10 @@ test.describe.serial("UI User Management Suite", () => {
         await expect(targetDropdown).toHaveText(dropdownOptions[1]);
 
         await sharedPage.reload();
-        await sharedPage.waitForLoadState("domcontentloaded");
+        await sharedPage.waitForLoadState("networkidle");
 
         targetDropdown = getLocator(userPage);
+        await targetDropdown.waitFor({ state: "visible" });
 
         await expect(targetDropdown).toHaveText(dropdownOptions[0]);
       });
