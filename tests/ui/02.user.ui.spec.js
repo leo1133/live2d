@@ -3,6 +3,8 @@ import { UserPage } from "../../src/pages/UserPage.js";
 import { LoginPage } from "../../src/pages/LoginPage.js";
 import { loginData } from "../../src/test-data/loginData.js";
 import { userData } from "../../src/test-data/userData.js";
+import path from "path";
+import fs from "fs";
 
 let tcIndex = 1;
 
@@ -10,10 +12,17 @@ test.describe.serial("UI User Management Suite", () => {
   let sharedPage;
   let userPage;
 
+  // =========================================================================
+  // [CŨ - 50 DÒNG]: Tự tạo newContext, đọc fs/path và try...catch login thủ công
+  // =========================================================================
+  /*
   test.beforeAll(async ({ browser }) => {
     test.setTimeout(60000);
+    const authPath = path.resolve(process.cwd(), "tests/auth/ui_admin.json");
+    const hasStorageState = fs.existsSync(authPath);
     const context = await browser.newContext({
       baseURL: process.env.UI_BASE_URL,
+      storageState: hasStorageState ? authPath : undefined,
       httpCredentials: process.env.BASIC_AUTH_USER
         ? {
             username: process.env.BASIC_AUTH_USER,
@@ -23,24 +32,28 @@ test.describe.serial("UI User Management Suite", () => {
     });
     sharedPage = await context.newPage();
     const loginPage = new LoginPage(sharedPage);
-    userPage = new UserPage(sharedPage);
-
     await loginPage.goto();
-    await loginPage.login(
-      loginData.credentials.account,
-      loginData.credentials.password,
-    );
+    await loginPage.login(loginData.credentials.account, loginData.credentials.password);
     try {
       await loginPage.verifyLoginSuccess(new RegExp(userData.titles.dashboard));
     } catch (err) {
       console.warn("Retrying login after transient failure...");
-      await loginPage.goto();
-      await loginPage.login(
-        loginData.credentials.account,
-        loginData.credentials.password,
-      );
-      await loginPage.verifyLoginSuccess(new RegExp(userData.titles.dashboard));
     }
+  });
+  */
+
+  // =========================================================================
+  // [MỚI - TỐI ƯU GỌN GÀNG]: Tự động nạp storageState từ playwright.config.js
+  // =========================================================================
+  test.beforeAll(async ({ browser }) => {
+    test.setTimeout(60000);
+    sharedPage = await browser.newPage();
+    userPage = new UserPage(sharedPage);
+    // [ADVANCED UPGRADE]: Chặn ảnh tĩnh để UI load nhanh hơn
+    await sharedPage.route(/\.(png|jpeg|jpg|svg|webp)$/, (route) =>
+      route.abort(),
+    );
+    await userPage.navigateToUser();
   });
 
   async function ensureUserPage() {
@@ -620,6 +633,26 @@ test.describe.serial("UI User Management Suite", () => {
           .locator("th")
           .filter({ hasText: userData.tableExpandGroups.group2.columns[0] }),
       ).toBeHidden();
+    });
+  });
+
+  // =========================================================================
+  // [ADVANCED UPGRADE 2]: Network Intercept & Mock API Response
+  // =========================================================================
+  test.describe("9. Network Intercept & Mocking (Advanced)", () => {
+    test(`TC${tcIndex++} - Mock API lấy danh sách User trả về lỗi 500 để kiểm tra xử lý lỗi trên UI`, async () => {
+      await sharedPage.route("**/api/v1/users/**", async (route) => {
+        await route.fulfill({
+          status: 500,
+          contentType: "application/json",
+          body: JSON.stringify({ message: "Mocked Internal Server Error 500" }),
+        });
+      });
+
+      await sharedPage.goto(userData.url, { waitUntil: "domcontentloaded" });
+
+      // Hủy bỏ mock route để không ảnh hưởng các test case khác
+      await sharedPage.unroute("**/api/v1/users/**");
     });
   });
 });

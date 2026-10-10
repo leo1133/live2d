@@ -3,6 +3,8 @@ import { GachaPage } from "../../src/pages/GachaPage.js";
 import { LoginPage } from "../../src/pages/LoginPage.js";
 import { loginData } from "../../src/test-data/loginData.js";
 import { gachaData } from "../../src/test-data/gachaData.js";
+import path from "path";
+import fs from "fs";
 
 let tcIndex = 1;
 const padTc = () => `TC${String(tcIndex++).padStart(2, "0")}`;
@@ -11,10 +13,17 @@ test.describe.serial("UI Gacha Management", () => {
   let sharedPage;
   let gachaPage;
 
+  // =========================================================================
+  // [CŨ - 50 DÒNG]: Tự tạo newContext, đọc fs/path và try...catch login thủ công
+  // =========================================================================
+  /*
   test.beforeAll(async ({ browser }) => {
     test.setTimeout(60000);
+    const authPath = path.resolve(process.cwd(), "tests/auth/ui_admin.json");
+    const hasStorageState = fs.existsSync(authPath);
     const context = await browser.newContext({
       baseURL: process.env.UI_BASE_URL,
+      storageState: hasStorageState ? authPath : undefined,
       httpCredentials: process.env.BASIC_AUTH_USER
         ? {
             username: process.env.BASIC_AUTH_USER,
@@ -24,28 +33,28 @@ test.describe.serial("UI Gacha Management", () => {
     });
     sharedPage = await context.newPage();
     const loginPage = new LoginPage(sharedPage);
-    gachaPage = new GachaPage(sharedPage);
-
     await loginPage.goto();
-    await loginPage.login(
-      loginData.credentials.account,
-      loginData.credentials.password,
-    );
+    await loginPage.login(loginData.credentials.account, loginData.credentials.password);
     try {
-      await loginPage.verifyLoginSuccess(
-        new RegExp(gachaData.titles.dashboard),
-      );
+      await loginPage.verifyLoginSuccess(new RegExp(gachaData.titles.dashboard));
     } catch (err) {
       console.warn("Retrying login after transient failure...");
-      await loginPage.goto();
-      await loginPage.login(
-        loginData.credentials.account,
-        loginData.credentials.password,
-      );
-      await loginPage.verifyLoginSuccess(
-        new RegExp(gachaData.titles.dashboard),
-      );
     }
+  });
+  */
+
+  // =========================================================================
+  // [MỚI - TỐI ƯU GỌN GÀNG]: Tự động nạp storageState từ playwright.config.js
+  // =========================================================================
+  test.beforeAll(async ({ browser }) => {
+    test.setTimeout(60000);
+    sharedPage = await browser.newPage();
+    gachaPage = new GachaPage(sharedPage);
+    // [ADVANCED UPGRADE]: Chặn ảnh tĩnh để UI load nhanh hơn
+    await sharedPage.route(/\.(png|jpeg|jpg|svg|webp)$/, (route) =>
+      route.abort(),
+    );
+    await gachaPage.navigateToGachaList();
   });
 
   test.afterAll(async () => {
