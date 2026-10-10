@@ -25,8 +25,16 @@ export default defineConfig({
     timeout: 10 * 1000,
   },
 
-  /* Chạy các file test theo thứ tự tuần tự (Case 1 -> Case 57) */
+  // =========================================================================
+  // [ADVANCED UPGRADE 1 & 2]: Parallel Execution & Workers
+  // =========================================================================
+  /* [CŨ - CHẠY TUẦN TỰ ĐƠN LUỒNG]:
   fullyParallel: false,
+  workers: 1,
+  */
+  // [MỚI - CHẠY SONG SONG TỐI ƯU HIỆU NĂNG]:
+  fullyParallel: true,
+  workers: process.env.CI ? 2 : 4,
 
   /* Báo lỗi trên CI nếu lỡ quên test.only */
   forbidOnly: !!process.env.CI,
@@ -34,16 +42,22 @@ export default defineConfig({
   /* Số lần thử lại (Retry) khi test bị fail */
   retries: process.env.CI ? 2 : 0,
 
-  /* Số luồng chạy: 1 luồng để đảm bảo chạy đúng thứ tự tuần tự từ Case 1 tới Case 57 */
-  workers: 1,
-
   /* Khai báo loại Báo cáo (Reporter) */
   reporter: [["html", { open: "never" }], ["list"]],
 
   /* Cấu hình chung cho toàn bộ dự án */
   use: {
-    /* Ghi trace khi test thất bại lần đầu để debug */
+    // =========================================================================
+    // [ADVANCED UPGRADE 3]: Screenshot, Video & Trace Debugging
+    // =========================================================================
+    /* [CŨ - CHỈ CÓ TRACE]:
     trace: "on-first-retry",
+    */
+    // [MỚI - ĐẦY ĐỦ ARTIFACTS KHI TEST THẤT BẠI]:
+    trace: "retain-on-failure",
+    screenshot: "only-on-failure",
+    video: "retain-on-failure",
+
     /* Tự động điền Basic Auth (chống kẹt màn hình popup của browser) */
     httpCredentials: process.env.BASIC_AUTH_USER
       ? {
@@ -53,15 +67,40 @@ export default defineConfig({
       : undefined,
   },
 
-  /* Phân chia Projects theo đúng thứ tự Case (UI: Case 1-18 -> API: Case 19-49 -> E2E: Case 50-57) */
+  // =========================================================================
+  // [ADVANCED UPGRADE 4]: UI Authentication via StorageState & Project Dependencies
+  // =========================================================================
   projects: [
+    // 0. Project Setup chạy trước 1 lần duy nhất để tạo file session tests/auth/ui_admin.json
+    {
+      name: "setup",
+      testMatch: /.*admin\.setup\.js/,
+      use: {
+        ...devices["Desktop Chrome"],
+        baseURL: process.env.UI_BASE_URL,
+      },
+    },
+
     // 1. Project chạy Test Admin UI trên Chrome (Case 1 - 18)
+    /* [CŨ - CHƯA CÓ STORAGE STATE]:
     {
       name: "Admin UI Tests - Chrome",
       testDir: "./tests/ui",
       use: {
         ...devices["Desktop Chrome"],
         baseURL: process.env.UI_BASE_URL,
+      },
+    },
+    */
+    // [MỚI - TÁI SỬ DỤNG STORAGE STATE & DEPENDENCY SETUP]:
+    {
+      name: "Admin UI Tests - Chrome",
+      testDir: "./tests/ui",
+      dependencies: ["setup"],
+      use: {
+        ...devices["Desktop Chrome"],
+        baseURL: process.env.UI_BASE_URL,
+        storageState: "tests/auth/ui_admin.json",
       },
     },
 
@@ -78,12 +117,25 @@ export default defineConfig({
     },
 
     // 3. Project chạy Test E2E (Case 50 - 57)
+    /* [CŨ - CHƯA CÓ STORAGE STATE]:
     {
       name: "E2E Tests",
       testDir: "./tests/e2e",
       use: {
         ...devices["Desktop Chrome"],
         baseURL: process.env.UI_BASE_URL,
+      },
+    },
+    */
+    // [MỚI - TÁI SỬ DỤNG STORAGE STATE & DEPENDENCY SETUP]:
+    {
+      name: "E2E Tests",
+      testDir: "./tests/e2e",
+      dependencies: ["setup"],
+      use: {
+        ...devices["Desktop Chrome"],
+        baseURL: process.env.UI_BASE_URL,
+        storageState: "tests/auth/ui_admin.json",
       },
     },
   ],

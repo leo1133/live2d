@@ -7,17 +7,26 @@ import { gachaData } from "../../src/test-data/gachaData.js";
 import { apiGachaData } from "../../src/test-data/apiGachaData.js";
 import { METHODS, HTTP_STATUS_CODE } from "../../src/utils/constants.js";
 import { ENDPOINTS } from "../../src/config/endpoint.js";
+import path from "path";
+import fs from "fs";
 
 test.describe.serial("E2E Gacha Management", () => {
   let sharedPage;
   let gachaPage;
   let gachaApi;
 
+  // =========================================================================
+  // [CŨ - 65 DÒNG]: Đọc fs/path và try...catch login thủ công
+  // =========================================================================
+  /*
   test.beforeAll(async ({ browser }) => {
     test.setTimeout(60000);
+    const authPath = path.resolve(process.cwd(), "tests/auth/ui_admin.json");
+    const hasStorageState = fs.existsSync(authPath);
 
     const context = await browser.newContext({
       baseURL: process.env.UI_BASE_URL,
+      storageState: hasStorageState ? authPath : undefined,
       httpCredentials: process.env.BASIC_AUTH_USER
         ? {
             username: process.env.BASIC_AUTH_USER,
@@ -26,33 +35,32 @@ test.describe.serial("E2E Gacha Management", () => {
         : undefined,
     });
     sharedPage = await context.newPage();
-    const loginPage = new LoginPage(sharedPage);
     gachaPage = new GachaPage(sharedPage);
 
+    const loginPage = new LoginPage(sharedPage);
     await loginPage.goto();
     await loginPage.login(
       loginData.credentials.account,
       loginData.credentials.password,
     );
     try {
-      await loginPage.verifyLoginSuccess(
-        new RegExp(gachaData.titles.dashboard),
-      );
+      await loginPage.verifyLoginSuccess(new RegExp(gachaData.titles.dashboard));
     } catch (err) {
       console.warn("Retrying login after transient failure...");
-      await sharedPage.waitForTimeout(1000);
-      await loginPage.goto();
-      await loginPage.login(
-        loginData.credentials.account,
-        loginData.credentials.password,
-      );
-      await loginPage.verifyLoginSuccess(
-        new RegExp(gachaData.titles.dashboard),
-      );
     }
 
     await gachaPage.navigateToGachaList();
-    await gachaPage.searchInput.waitFor({ state: "visible", timeout: 15000 });
+  });
+  */
+
+  // =========================================================================
+  // [MỚI - TỐI ƯU GỌN GÀNG]: Tận dụng storageState cấu hình sẵn từ playwright.config.js
+  // =========================================================================
+  test.beforeAll(async ({ browser }) => {
+    test.setTimeout(60000);
+    sharedPage = await browser.newPage();
+    gachaPage = new GachaPage(sharedPage);
+    await gachaPage.navigateToGachaList();
   });
 
   test.beforeEach(async ({ authenticatedRequest }) => {
