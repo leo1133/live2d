@@ -33,7 +33,8 @@ export const loginData = {
   },
 
   forgotPasswordScreen: {
-    title: "Surreal Dolls - パスワード忘れ",
+    url: "/forgot-password",
+    title: "Surreal Dolls - パスワードを忘れた方",
   },
 
   showToastMgs: {

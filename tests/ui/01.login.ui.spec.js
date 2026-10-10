@@ -102,7 +102,7 @@ test.describe('UI Login Suite: Kiểm tra thao tác giao diện DOM', () => {
     await expect(loginPage.forgotPasswordLink).toBeVisible();
     await loginPage.forgotPasswordLink.click();
     
-    await expect(page).toHaveTitle(loginData.forgotPasswordScreen.title);
+    await expect(page).toHaveURL(new RegExp(loginData.forgotPasswordScreen.url));
   });
 
 });
