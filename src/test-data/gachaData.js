@@ -21,8 +21,10 @@ export const gachaData = {
     limitedLabel: "期間限定",
     normalLabel: "ノーマル",
     initialSettingLabel: "初期設定",
-    nextPage: "次",
-    prevPage: "前",
+    firstPage: "最初のページへ",
+    prevPage: "前のページへ",
+    nextPage: "次のページへ",
+    lastPage: "最後のページへ",
     noDataMessage: "一致する検索結果はありません。",
   },
   columnIndices: {
@@ -70,6 +72,10 @@ export const gachaData = {
     summaryLocatorRegex: /全 .* 件中 .* 件を表示/,
     summaryRegex:
       /全 (\d{1,3}(?:,\d{3})*) 件中 (\d{1,3}(?:,\d{3})*)〜(\d{1,3}(?:,\d{3})*) 件を表示/,
+    firstPage: "最初のページへ",
+    prevPage: "前のページへ",
+    nextPage: "次のページへ",
+    lastPage: "最後のページへ",
     emptyTextRegex: /^$/,
   },
 };

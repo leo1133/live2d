@@ -10,6 +10,11 @@ import path from "path";
 const ENV = process.env.ENV || "dev";
 dotenv.config({ path: path.resolve(process.cwd(), `.env.${ENV}`) });
 
+const UI_SESSION_STORAGE = path.resolve(
+  process.cwd(),
+  `tests/auth/ui_session_${ENV}.json`,
+);
+
 /**
  * @see https://playwright.dev/docs/test-configuration
  */
@@ -25,16 +30,8 @@ export default defineConfig({
     timeout: 10 * 1000,
   },
 
-  // =========================================================================
-  // [ADVANCED UPGRADE 1 & 2]: Parallel Execution & Workers
-  // =========================================================================
-  /* [CŨ - CHẠY TUẦN TỰ ĐƠN LUỒNG]:
+  /* Mặc định giữ false cho các UI test suite tuần tự, API tests bật fullyParallel */
   fullyParallel: false,
-  workers: 1,
-  */
-  // [MỚI - CHẠY SONG SONG TỐI ƯU HIỆU NĂNG]:
-  fullyParallel: true,
-  workers: process.env.CI ? 2 : 4,
 
   /* Báo lỗi trên CI nếu lỡ quên test.only */
   forbidOnly: !!process.env.CI,
@@ -42,22 +39,16 @@ export default defineConfig({
   /* Số lần thử lại (Retry) khi test bị fail */
   retries: process.env.CI ? 2 : 0,
 
+  /* Số luồng chạy */
+  workers: process.env.WORKERS ? Number(process.env.WORKERS) : 1,
+
   /* Khai báo loại Báo cáo (Reporter) */
   reporter: [["html", { open: "never" }], ["list"]],
 
   /* Cấu hình chung cho toàn bộ dự án */
   use: {
-    // =========================================================================
-    // [ADVANCED UPGRADE 3]: Screenshot, Video & Trace Debugging
-    // =========================================================================
-    /* [CŨ - CHỈ CÓ TRACE]:
+    /* Ghi trace khi test thất bại lần đầu để debug */
     trace: "on-first-retry",
-    */
-    // [MỚI - ĐẦY ĐỦ ARTIFACTS KHI TEST THẤT BẠI]:
-    trace: "retain-on-failure",
-    screenshot: "only-on-failure",
-    video: "retain-on-failure",
-
     /* Tự động điền Basic Auth (chống kẹt màn hình popup của browser) */
     httpCredentials: process.env.BASIC_AUTH_USER
       ? {
@@ -67,14 +58,13 @@ export default defineConfig({
       : undefined,
   },
 
-  // =========================================================================
-  // [ADVANCED UPGRADE 4]: UI Authentication via StorageState & Project Dependencies
-  // =========================================================================
+  /* Phân chia Projects với Setup Dependency */
   projects: [
-    // 0. Project Setup chạy trước 1 lần duy nhất để tạo file session tests/auth/ui_admin.json
+    // 0. Global Setup: Đăng nhập UI Admin một lần và lưu storageState
     {
       name: "setup",
-      testMatch: /.*admin\.setup\.js/,
+      testDir: "./tests/auth",
+      testMatch: /.*\.setup\.js/,
       use: {
         ...devices["Desktop Chrome"],
         baseURL: process.env.UI_BASE_URL,
@@ -82,17 +72,6 @@ export default defineConfig({
     },
 
     // 1. Project chạy Test Admin UI trên Chrome (Case 1 - 18)
-    /* [CŨ - CHƯA CÓ STORAGE STATE]:
-    {
-      name: "Admin UI Tests - Chrome",
-      testDir: "./tests/ui",
-      use: {
-        ...devices["Desktop Chrome"],
-        baseURL: process.env.UI_BASE_URL,
-      },
-    },
-    */
-    // [MỚI - TÁI SỬ DỤNG STORAGE STATE & DEPENDENCY SETUP]:
     {
       name: "Admin UI Tests - Chrome",
       testDir: "./tests/ui",
@@ -100,14 +79,15 @@ export default defineConfig({
       use: {
         ...devices["Desktop Chrome"],
         baseURL: process.env.UI_BASE_URL,
-        storageState: "tests/auth/ui_admin.json",
+        storageState: UI_SESSION_STORAGE,
       },
     },
 
-    // 2. Project chạy Test API (Case 19 - 49)
+    // 2. Project chạy Test API (Case 19 - 49) - Chạy song song (Parallel)
     {
       name: "API Tests",
       testDir: "./tests/api",
+      fullyParallel: true,
       use: {
         baseURL: process.env.API_BASE_URL,
         extraHTTPHeaders: {
@@ -117,17 +97,6 @@ export default defineConfig({
     },
 
     // 3. Project chạy Test E2E (Case 50 - 57)
-    /* [CŨ - CHƯA CÓ STORAGE STATE]:
-    {
-      name: "E2E Tests",
-      testDir: "./tests/e2e",
-      use: {
-        ...devices["Desktop Chrome"],
-        baseURL: process.env.UI_BASE_URL,
-      },
-    },
-    */
-    // [MỚI - TÁI SỬ DỤNG STORAGE STATE & DEPENDENCY SETUP]:
     {
       name: "E2E Tests",
       testDir: "./tests/e2e",
@@ -135,7 +104,7 @@ export default defineConfig({
       use: {
         ...devices["Desktop Chrome"],
         baseURL: process.env.UI_BASE_URL,
-        storageState: "tests/auth/ui_admin.json",
+        storageState: UI_SESSION_STORAGE,
       },
     },
   ],

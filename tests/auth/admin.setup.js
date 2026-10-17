@@ -1,35 +1,79 @@
-import { test as setup, expect } from "@playwright/test";
-import { LoginPage } from "../../src/pages/LoginPage.js";
-import { loginData } from "../../src/test-data/loginData.js";
-import { userData } from "../../src/test-data/userData.js";
-import path from "path";
-import fs from "fs";
+import { test as setup } from '@playwright/test';
+import { LoginPage } from '../../src/pages/LoginPage.js';
+import { loginData } from '../../src/test-data/loginData.js';
+import { getUiSessionFile } from '../../src/config/endpoint.js';
+import fs from 'fs';
+import path from 'path';
 
-const authDir = path.resolve(process.cwd(), "tests/auth");
-const authFile = path.join(authDir, "ui_admin.json");
+const authDir = path.join(process.cwd(), 'tests', 'auth');
+export const STORAGE_STATE_PATH = getUiSessionFile();
 
 /**
- * [ADVANCED FEATURE] UI Authentication Setup
- * Thực hiện đăng nhập 1 lần duy nhất trên UI và lưu trạng thái phiên (Cookies, Local Storage)
- * vào file tests/auth/ui_admin.json để tất cả các UI tests khác tái sử dụng mà không cần login lại.
+ * Kiểm tra xem session đã lưu trong file còn hạn sử dụng hay không
  */
-setup("Authenticate UI Admin and save storageState", async ({ page }) => {
+function isSessionValid() {
+  if (!fs.existsSync(STORAGE_STATE_PATH)) return false;
+  try {
+    const data = JSON.parse(fs.readFileSync(STORAGE_STATE_PATH, 'utf-8'));
+    const tokenCookie = data.cookies?.find((c) => c.name === 'access_token');
+    if (!tokenCookie?.value) return false;
+
+    const payload = JSON.parse(
+      Buffer.from(tokenCookie.value.split('.')[1], 'base64').toString()
+    );
+    // Còn hạn sử dụng ít nhất 60 giây
+    return Boolean(payload.exp && payload.exp * 1000 > Date.now() + 60000);
+  } catch {
+    return false;
+  }
+}
+
+setup('Authenticate UI Admin & Cache Session', async ({ page }) => {
   setup.setTimeout(60000);
+
+  // 1. Tối ưu tốc độ: Nếu session đã có và còn hạn thì bỏ qua bước mở browser login
+  if (isSessionValid()) {
+    console.log(`[AUTH SETUP] Session còn hạn sử dụng, tái sử dụng: ${STORAGE_STATE_PATH}`);
+    return;
+  }
+
+  if (!fs.existsSync(authDir)) {
+    fs.mkdirSync(authDir, { recursive: true });
+  }
 
   const loginPage = new LoginPage(page);
   await loginPage.goto();
   await loginPage.login(
     loginData.credentials.account,
-    loginData.credentials.password,
+    loginData.credentials.password
   );
 
-  // Đảm bảo đăng nhập thành công
-  await loginPage.verifyLoginSuccess(new RegExp(userData.titles.dashboard));
-
-  // Tạo thư mục nếu chưa tồn tại và lưu session storageState
-  if (!fs.existsSync(authDir)) {
-    fs.mkdirSync(authDir, { recursive: true });
+  try {
+    await loginPage.verifyLoginSuccess(loginData.credentials.textLoginSuccess);
+  } catch (err) {
+    console.warn('[AUTH SETUP] Retrying login after transient delay...');
+    await page.waitForTimeout(1000);
+    await loginPage.goto();
+    await loginPage.login(
+      loginData.credentials.account,
+      loginData.credentials.password
+    );
+    await loginPage.verifyLoginSuccess(loginData.credentials.textLoginSuccess);
   }
-  await page.context().storageState({ path: authFile });
-  console.log(`[STORAGE STATE] UI Admin session saved successfully to ${authFile}`);
+
+  // 2. Tối ưu dung lượng: Lọc bỏ các cache video/asset rác trong localStorage, chỉ giữ session sạch
+  const rawState = await page.context().storageState();
+  const cleanState = {
+    cookies: rawState.cookies || [],
+    origins: (rawState.origins || []).map((origin) => ({
+      origin: origin.origin,
+      // Lọc bỏ toàn bộ cache asset/video nặng nề không liên quan đến phiên xác thực
+      localStorage: (origin.localStorage || []).filter(
+        (item) => !item.name.startsWith('surreal-resource-')
+      ),
+    })),
+  };
+
+  fs.writeFileSync(STORAGE_STATE_PATH, JSON.stringify(cleanState, null, 2));
+  console.log(`[AUTH SETUP] Đã tối ưu và lưu UI session gọn nhẹ vào: ${STORAGE_STATE_PATH}`);
 });

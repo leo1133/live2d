@@ -27,29 +27,80 @@ export class LoginPage {
   }
 
   async goto() {
-    await this.page.goto(loginData.url, { waitUntil: "domcontentloaded" });
+    try {
+      await this.page.goto(loginData.url, { waitUntil: "domcontentloaded" });
+    } catch {
+      await this.page.waitForTimeout(1000);
+      await this.page.goto(loginData.url, { waitUntil: "domcontentloaded" });
+    }
     await this.accountInput.waitFor({ state: "visible" });
     await this.loginButton.waitFor({ state: "visible" });
-    await this.page.waitForTimeout(500);
+
+    // Wait for version check or initial hydration request
+    await this.page
+      .waitForResponse(
+        (resp) => resp.url().includes("/api/v1/common/version"),
+        { timeout: 3500 },
+      )
+      .catch(() => null);
+
+    // Ensure Next.js client component hydration has completed before interaction
+    await this.page
+      .waitForFunction(
+        () => {
+          const input = document.querySelector("input");
+          return (
+            input &&
+            Object.keys(input).some((k) => k.startsWith("__react"))
+          );
+        },
+        { timeout: 7000 },
+      )
+      .catch(() => null);
   }
 
   async login(account, password) {
     await this.accountInput.waitFor({ state: "visible" });
-    await this.page.waitForTimeout(300);
+    await this.loginButton.waitFor({ state: "visible" });
 
     if (account !== undefined) {
       await this.accountInput.click();
       await this.accountInput.fill(account);
+      if (account) {
+        await expect(this.accountInput)
+          .toHaveValue(account, { timeout: 3000 })
+          .catch(async () => {
+            await this.accountInput.click();
+            await this.accountInput.fill(account);
+          });
+      }
     }
     if (password !== undefined) {
       await this.passwordInput.click();
       await this.passwordInput.fill(password);
+      if (password) {
+        await expect(this.passwordInput)
+          .toHaveValue(password, { timeout: 3000 })
+          .catch(async () => {
+            await this.passwordInput.click();
+            await this.passwordInput.fill(password);
+          });
+      }
     }
-    await this.page.waitForTimeout(300);
+
+    // Double-check inputs are still filled before submitting (guard against delayed React hydration reset)
+    if (account && (await this.accountInput.inputValue()) !== account) {
+      await this.accountInput.click();
+      await this.accountInput.fill(account);
+    }
+    if (password && (await this.passwordInput.inputValue()) !== password) {
+      await this.passwordInput.click();
+      await this.passwordInput.fill(password);
+    }
 
     const loginResponsePromise = this.page
       .waitForResponse((resp) => resp.url().includes("/api/v1/auth/login/"), {
-        timeout: 20000,
+        timeout: 15000,
       })
       .catch(() => null);
 
@@ -68,14 +119,18 @@ export class LoginPage {
 
   async verifyLoginSuccess(expectedTitle) {
     try {
-      await Promise.race([
+      const racePromises = [
         this.page.waitForURL((url) => !url.pathname.includes("/sign-in"), {
           timeout: 15000,
           waitUntil: "domcontentloaded",
         }),
-        expect(this.page).toHaveTitle(expectedTitle, { timeout: 15000 }),
-      ]);
-      await this.page.waitForTimeout(500);
+      ];
+      if (expectedTitle) {
+        racePromises.push(
+          expect(this.page).toHaveTitle(expectedTitle, { timeout: 15000 }),
+        );
+      }
+      await Promise.race(racePromises);
     } catch (e) {
       const toastLocators = this.page.locator(
         '[data-sonner-toast], [data-title], [data-description], [role="alert"], [role="status"], section[aria-label*="Notifications"] *',

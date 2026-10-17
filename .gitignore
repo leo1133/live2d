@@ -1,4 +1,3 @@
-
 # Playwright
 node_modules/
 /test-results/
@@ -6,5 +5,14 @@ node_modules/
 /blob-report/
 /playwright/.cache/
 /playwright/.auth/
-.env.dev
-.env.staging
+temp_trace/
+tests/auth/*.json
+!tests/auth/.gitkeep
+
+# Environment variables
+.env*
+!.env.example
+
+# OS artifacts
+.DS_Store
+Thumbs.db

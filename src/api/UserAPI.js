@@ -1,12 +1,12 @@
-import { ENDPOINTS } from "../config/endpoint.js";
+import { ENDPOINTS, getApiBaseUrl } from "../config/endpoint.js";
+
 export class UserAPI {
   /**
    * @param {import('@playwright/test').APIRequestContext} request
    */
   constructor(request) {
     this.request = request;
-    const apiBaseUrl = process.env.API_BASE_URL || 'https://api-admin-dev.surrealdolls.com';
-    this.userEndpoint = apiBaseUrl + ENDPOINTS.USER.GET_LIST;
+    this.userEndpoint = getApiBaseUrl() + ENDPOINTS.USER.GET_LIST;
   }
 
   /**

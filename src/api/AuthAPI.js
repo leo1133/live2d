@@ -1,4 +1,5 @@
 import { HTTP_STATUS_CODE } from '../utils/constants.js';
+import { ENDPOINTS, getApiBaseUrl } from '../config/endpoint.js';
 
 export class AuthAPI {
   /**
@@ -6,8 +7,9 @@ export class AuthAPI {
    */
   constructor(request) {
     this.request = request;
-    this.apiBaseUrl = process.env.API_BASE_URL || 'https://api-admin-dev.surrealdolls.com';
-    this.loginEndpoint = `${this.apiBaseUrl}/api/v1/auth/login/`;
+    this.apiBaseUrl = getApiBaseUrl();
+    this.loginEndpoint = `${this.apiBaseUrl}${ENDPOINTS.AUTH.LOGIN}`;
+    this.refreshEndpoint = `${this.apiBaseUrl}${ENDPOINTS.AUTH.REFRESH_TOKEN}`;
   }
 
   getHeaders() {
