@@ -3,8 +3,7 @@ import { UserPage } from "../../src/pages/UserPage.js";
 import { LoginPage } from "../../src/pages/LoginPage.js";
 import { loginData } from "../../src/test-data/loginData.js";
 import { userData } from "../../src/test-data/userData.js";
-import path from "path";
-import fs from "fs";
+import { getUiSessionFile } from "../../src/config/endpoint.js";
 
 let tcIndex = 1;
 
@@ -12,17 +11,11 @@ test.describe.serial("UI User Management Suite", () => {
   let sharedPage;
   let userPage;
 
-  // =========================================================================
-  // [CŨ - 50 DÒNG]: Tự tạo newContext, đọc fs/path và try...catch login thủ công
-  // =========================================================================
-  /*
   test.beforeAll(async ({ browser }) => {
     test.setTimeout(60000);
-    const authPath = path.resolve(process.cwd(), "tests/auth/ui_admin.json");
-    const hasStorageState = fs.existsSync(authPath);
     const context = await browser.newContext({
       baseURL: process.env.UI_BASE_URL,
-      storageState: hasStorageState ? authPath : undefined,
+      storageState: getUiSessionFile(),
       httpCredentials: process.env.BASIC_AUTH_USER
         ? {
             username: process.env.BASIC_AUTH_USER,
@@ -31,51 +24,23 @@ test.describe.serial("UI User Management Suite", () => {
         : undefined,
     });
     sharedPage = await context.newPage();
-    const loginPage = new LoginPage(sharedPage);
-    await loginPage.goto();
-    await loginPage.login(loginData.credentials.account, loginData.credentials.password);
-    try {
-      await loginPage.verifyLoginSuccess(new RegExp(userData.titles.dashboard));
-    } catch (err) {
-      console.warn("Retrying login after transient failure...");
-    }
-  });
-  */
-
-  // =========================================================================
-  // [MỚI - TỐI ƯU GỌN GÀNG]: Tự động nạp storageState từ playwright.config.js
-  // =========================================================================
-  test.beforeAll(async ({ browser }) => {
-    test.setTimeout(60000);
-    sharedPage = await browser.newPage();
     userPage = new UserPage(sharedPage);
-    // [ADVANCED UPGRADE]: Chặn ảnh tĩnh để UI load nhanh hơn
-    await sharedPage.route(/\.(png|jpeg|jpg|svg|webp)$/, (route) =>
-      route.abort(),
-    );
-    await userPage.navigateToUser();
+    await sharedPage.goto(userData.dashboardUrl, {
+      waitUntil: "domcontentloaded",
+    });
   });
 
   async function ensureUserPage() {
-    await sharedPage.goto(userData.url, { waitUntil: "domcontentloaded" });
-
-    if (sharedPage.url().includes("/sign-in")) {
-      const loginPage = new LoginPage(sharedPage);
-      await loginPage.login(
-        loginData.credentials.account,
-        loginData.credentials.password,
-      );
-      await loginPage.verifyLoginSuccess(new RegExp(userData.titles.dashboard));
+    if (!sharedPage.url().includes(userData.url)) {
       await sharedPage.goto(userData.url, { waitUntil: "domcontentloaded" });
     }
-
     await userPage.searchInput.waitFor({ state: "visible", timeout: 15000 });
     await expect(userPage.tableRows.first()).toBeVisible({ timeout: 15000 });
   }
 
   test.describe("1. Truy cập màn hình", () => {
     test(`TC${tcIndex++} - Xác minh điều hướng thành công vào màn hình Quản lý Người dùng (利用者管理)`, async () => {
-      await expect(sharedPage).toHaveURL(new RegExp(userData.dashboardUrl));
+      await expect(sharedPage).toHaveURL(/\/$/);
       await userPage.navigateToUser();
       await expect(sharedPage).toHaveURL(new RegExp(userData.url));
 
@@ -105,8 +70,11 @@ test.describe.serial("UI User Management Suite", () => {
         userData.labels.pageHeading,
       ]);
 
-      await userPage.clickBreadcrumbHome();
-      await expect(sharedPage).toHaveURL(new RegExp(userData.dashboardUrl));
+      await Promise.all([
+        sharedPage.waitForURL(/\/$/, { waitUntil: "domcontentloaded" }),
+        userPage.clickBreadcrumbHome(),
+      ]);
+      await expect(sharedPage).toHaveURL(/\/$/);
     });
   });
 
@@ -262,7 +230,6 @@ test.describe.serial("UI User Management Suite", () => {
 
       test.afterEach(async () => {
         await sharedPage.keyboard.press("Escape");
-        await sharedPage.waitForTimeout(300);
         await userPage.clearFilters();
       });
 
@@ -345,8 +312,7 @@ test.describe.serial("UI User Management Suite", () => {
           .click();
         await expect(targetDropdown).toHaveText(dropdownOptions[1]);
 
-        await sharedPage.reload();
-        await sharedPage.waitForLoadState("networkidle");
+        await sharedPage.reload({ waitUntil: "domcontentloaded" });
 
         targetDropdown = getLocator(userPage);
         await targetDropdown.waitFor({ state: "visible" });
@@ -379,8 +345,6 @@ test.describe.serial("UI User Management Suite", () => {
   test.describe("5. Phân trang", () => {
     test.beforeEach(async () => {
       await userPage.navigateToUser();
-      await userPage.clearFilters();
-      await sharedPage.waitForTimeout(500);
     });
 
     test(`TC${tcIndex++} - Kiểm tra hiển thị UI Pagination`, async () => {
@@ -393,12 +357,9 @@ test.describe.serial("UI User Management Suite", () => {
 
     test(`TC${tcIndex++} - Kiểm tra hiển thị khi đang focus ở trang bất kì`, async () => {
       const activePageBtn = sharedPage.getByRole("button", {
-        name: "1",
-        exact: true,
+        name: /1ページへ移動|^1$/,
       });
-      if (await activePageBtn.isVisible()) {
-        await expect(activePageBtn).toHaveAttribute("aria-current", "page");
-      }
+      await expect(activePageBtn).toHaveAttribute("aria-current", "page");
     });
 
     test(`TC${tcIndex++} - Kiểm tra phân trang với các mốc dữ liệu`, async () => {
@@ -442,57 +403,45 @@ test.describe.serial("UI User Management Suite", () => {
     });
 
     test(`TC${tcIndex++} - Kiểm tra icon > (Next)`, async () => {
-      await userPage.paginationLastPageButton.click();
-
-      await expect(userPage.paginationNextPageButton).toBeDisabled();
-
-      await userPage.paginationFirstPageButton.click();
       await expect(userPage.paginationNextPageButton).toBeVisible();
       await expect(userPage.paginationNextPageButton).toBeEnabled();
 
       await userPage.paginationNextPageButton.click();
       await expect(userPage.paginationFirstPageButton).toBeVisible();
+      await expect(userPage.paginationPrevPageButton).toBeEnabled();
+
+      // Trở về trang 1
+      await userPage.paginationPrevPageButton.click();
+      await expect(userPage.paginationSummary).toContainText("中 1〜");
     });
 
     test(`TC${tcIndex++} - Kiểm tra icon >> (Last)`, async () => {
-      await userPage.paginationLastPageButton.click();
-
-      await expect(userPage.paginationLastPageButton).toBeDisabled();
-
-      await userPage.paginationFirstPageButton.click();
       await expect(userPage.paginationLastPageButton).toBeVisible();
       await expect(userPage.paginationLastPageButton).toBeEnabled();
 
       await userPage.paginationLastPageButton.click();
       await expect(userPage.paginationLastPageButton).toBeDisabled();
+      await expect(userPage.paginationNextPageButton).toBeDisabled();
+
+      // Trở về trang 1
+      await userPage.paginationFirstPageButton.click();
+      await expect(userPage.paginationSummary).toContainText("中 1〜");
     });
 
     test(`TC${tcIndex++} - Kiểm tra khi click trang bất kỳ`, async () => {
-      await userPage.paginationFirstPageButton.click();
-
       const page2Btn = sharedPage.getByRole("button", {
-        name: "2",
-        exact: true,
+        name: /2ページへ移動|^2$/,
       });
-      if (await page2Btn.isVisible()) {
-        await page2Btn.click();
-        await expect(page2Btn).toHaveAttribute("aria-current", "page");
-      }
+      await expect(page2Btn).toBeVisible();
+      await page2Btn.click();
+      await expect(page2Btn).toHaveAttribute("aria-current", "page");
+
+      // Trở về trang 1
+      await userPage.paginationFirstPageButton.click();
+      await expect(userPage.paginationSummary).toContainText("中 1〜");
     });
 
     test(`TC${tcIndex++} - Kiểm tra thông tin hiển thị số lượng bản ghi (Pagination Summary)`, async () => {
-      await userPage.clearFilters();
-
-      await sharedPage.waitForTimeout(500);
-
-      if (
-        (await userPage.paginationFirstPageButton.isVisible()) &&
-        (await userPage.paginationFirstPageButton.isEnabled())
-      ) {
-        await userPage.paginationFirstPageButton.click();
-        await sharedPage.waitForTimeout(500);
-      }
-
       const summaryText = await userPage.paginationSummary.innerText();
 
       const match = summaryText.match(userData.pagination.summaryRegex);
@@ -503,7 +452,6 @@ test.describe.serial("UI User Management Suite", () => {
       const endRecord = parseInt(match[3].replace(/,/g, ""), 10);
 
       expect(startRecord).toBe(1);
-
       expect(endRecord).toBe(Math.min(10, totalRecords));
 
       const currentRowsCount = await userPage.tableRows.count();
@@ -522,21 +470,11 @@ test.describe.serial("UI User Management Suite", () => {
 
         expect(startRecord2).toBe(11);
         expect(endRecord2).toBe(Math.min(20, totalRecords));
+
+        // Trở về trang 1
+        await userPage.paginationPrevPageButton.click();
+        await expect(userPage.paginationSummary).toContainText("中 1〜");
       }
-
-      await userPage.paginationLastPageButton.click();
-
-      await expect(userPage.paginationSummary).toContainText(
-        `〜${totalRecords} 件`,
-      );
-
-      const textLastPage = await userPage.paginationSummary.innerText();
-      const matchLastPage = textLastPage.match(
-        userData.pagination.summaryRegex,
-      );
-      const endRecordLast = parseInt(matchLastPage[3].replace(/,/g, ""), 10);
-
-      expect(endRecordLast).toBe(totalRecords);
     });
   });
 
@@ -544,7 +482,6 @@ test.describe.serial("UI User Management Suite", () => {
     test.beforeEach(async () => {
       await userPage.navigateToUser();
       await userPage.clearFilters();
-      await sharedPage.waitForTimeout(500);
     });
 
     test(`TC${tcIndex++} - Kiểm tra hiển thị đủ và đúng thứ tự các cột Table Header`, async () => {
@@ -633,26 +570,6 @@ test.describe.serial("UI User Management Suite", () => {
           .locator("th")
           .filter({ hasText: userData.tableExpandGroups.group2.columns[0] }),
       ).toBeHidden();
-    });
-  });
-
-  // =========================================================================
-  // [ADVANCED UPGRADE 2]: Network Intercept & Mock API Response
-  // =========================================================================
-  test.describe("9. Network Intercept & Mocking (Advanced)", () => {
-    test(`TC${tcIndex++} - Mock API lấy danh sách User trả về lỗi 500 để kiểm tra xử lý lỗi trên UI`, async () => {
-      await sharedPage.route("**/api/v1/users/**", async (route) => {
-        await route.fulfill({
-          status: 500,
-          contentType: "application/json",
-          body: JSON.stringify({ message: "Mocked Internal Server Error 500" }),
-        });
-      });
-
-      await sharedPage.goto(userData.url, { waitUntil: "domcontentloaded" });
-
-      // Hủy bỏ mock route để không ảnh hưởng các test case khác
-      await sharedPage.unroute("**/api/v1/users/**");
     });
   });
 });

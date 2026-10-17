@@ -3,8 +3,7 @@ import { GachaPage } from "../../src/pages/GachaPage.js";
 import { LoginPage } from "../../src/pages/LoginPage.js";
 import { loginData } from "../../src/test-data/loginData.js";
 import { gachaData } from "../../src/test-data/gachaData.js";
-import path from "path";
-import fs from "fs";
+import { getUiSessionFile } from "../../src/config/endpoint.js";
 
 let tcIndex = 1;
 const padTc = () => `TC${String(tcIndex++).padStart(2, "0")}`;
@@ -13,17 +12,11 @@ test.describe.serial("UI Gacha Management", () => {
   let sharedPage;
   let gachaPage;
 
-  // =========================================================================
-  // [CŨ - 50 DÒNG]: Tự tạo newContext, đọc fs/path và try...catch login thủ công
-  // =========================================================================
-  /*
   test.beforeAll(async ({ browser }) => {
     test.setTimeout(60000);
-    const authPath = path.resolve(process.cwd(), "tests/auth/ui_admin.json");
-    const hasStorageState = fs.existsSync(authPath);
     const context = await browser.newContext({
       baseURL: process.env.UI_BASE_URL,
-      storageState: hasStorageState ? authPath : undefined,
+      storageState: getUiSessionFile(),
       httpCredentials: process.env.BASIC_AUTH_USER
         ? {
             username: process.env.BASIC_AUTH_USER,
@@ -32,29 +25,10 @@ test.describe.serial("UI Gacha Management", () => {
         : undefined,
     });
     sharedPage = await context.newPage();
-    const loginPage = new LoginPage(sharedPage);
-    await loginPage.goto();
-    await loginPage.login(loginData.credentials.account, loginData.credentials.password);
-    try {
-      await loginPage.verifyLoginSuccess(new RegExp(gachaData.titles.dashboard));
-    } catch (err) {
-      console.warn("Retrying login after transient failure...");
-    }
-  });
-  */
-
-  // =========================================================================
-  // [MỚI - TỐI ƯU GỌN GÀNG]: Tự động nạp storageState từ playwright.config.js
-  // =========================================================================
-  test.beforeAll(async ({ browser }) => {
-    test.setTimeout(60000);
-    sharedPage = await browser.newPage();
     gachaPage = new GachaPage(sharedPage);
-    // [ADVANCED UPGRADE]: Chặn ảnh tĩnh để UI load nhanh hơn
-    await sharedPage.route(/\.(png|jpeg|jpg|svg|webp)$/, (route) =>
-      route.abort(),
-    );
-    await gachaPage.navigateToGachaList();
+    await sharedPage.goto(gachaData.dashboardUrl, {
+      waitUntil: "domcontentloaded",
+    });
   });
 
   test.afterAll(async () => {
@@ -62,22 +36,10 @@ test.describe.serial("UI Gacha Management", () => {
   });
 
   async function ensureGachaPage() {
-    await sharedPage.goto(gachaData.url, { waitUntil: "domcontentloaded" });
-
-    if (sharedPage.url().includes("/sign-in")) {
-      const loginPage = new LoginPage(sharedPage);
-      await loginPage.login(
-        loginData.credentials.account,
-        loginData.credentials.password,
-      );
-      await loginPage.verifyLoginSuccess(
-        new RegExp(gachaData.titles.dashboard),
-      );
+    if (!sharedPage.url().includes(gachaData.url)) {
       await sharedPage.goto(gachaData.url, { waitUntil: "domcontentloaded" });
     }
-
     await gachaPage.searchInput.waitFor({ state: "visible", timeout: 15000 });
-    await sharedPage.waitForTimeout(500);
   }
 
   // ==================== 1. Sidebar & Breadcrumb ====================
@@ -100,8 +62,12 @@ test.describe.serial("UI Gacha Management", () => {
     });
 
     test(`${padTc()}: Click Breadcrumb Home về Dashboard`, async () => {
-      await gachaPage.clickBreadcrumbHome();
-      await expect(sharedPage).toHaveURL(new RegExp(gachaData.dashboardUrl));
+      await Promise.all([
+        sharedPage.waitForURL(/\/$/, { waitUntil: "domcontentloaded" }),
+        gachaPage.clickBreadcrumbHome(),
+      ]);
+      await expect(sharedPage).toHaveURL(/\/$/);
+      await gachaPage.navigateToGachaList();
     });
   });
 
@@ -182,6 +148,10 @@ test.describe.serial("UI Gacha Management", () => {
   test.describe("4. Button Tìm kiếm (検索)", () => {
     test.beforeEach(async () => {
       await ensureGachaPage();
+    });
+
+    test.afterEach(async () => {
+      await gachaPage.clearFilters();
     });
 
     test(`${padTc()}: Kiểm tra khi di chuyển con trỏ chuột vào button`, async () => {
@@ -460,8 +430,10 @@ test.describe.serial("UI Gacha Management", () => {
     test.beforeEach(async () => {
       await ensureGachaPage();
       await gachaPage.clearFilters();
-      await gachaPage.searchButton.click();
-      await sharedPage.waitForTimeout(500);
+      if (await gachaPage.paginationFirstPageButton.isEnabled()) {
+        await gachaPage.paginationFirstPageButton.click();
+        await expect(gachaPage.paginationSummary).toContainText("中 1〜");
+      }
     });
 
     test(`${padTc()}: Kiểm tra hiển thị thông tin phân trang (Pagination Summary)`, async () => {
@@ -496,7 +468,9 @@ test.describe.serial("UI Gacha Management", () => {
         const totalRecords = parseInt(match[1].replace(/,/g, ""), 10);
         if (totalRecords > pageSize) {
           await gachaPage.paginationNextPageButton.click();
-          await sharedPage.waitForTimeout(500);
+          await expect(gachaPage.paginationSummary).toContainText(
+            `${pageSize + 1}〜`,
+          );
 
           const textPage2 = await gachaPage.paginationSummary.innerText();
           const matchPage2 = textPage2.match(gachaData.pagination.summaryRegex);
@@ -520,11 +494,13 @@ test.describe.serial("UI Gacha Management", () => {
         if (totalRecords > pageSize) {
           // Đến trang 2 trước
           await gachaPage.paginationNextPageButton.click();
-          await sharedPage.waitForTimeout(500);
+          await expect(gachaPage.paginationSummary).toContainText(
+            `${pageSize + 1}〜`,
+          );
 
           // Bấm lùi lại trang 1
           await gachaPage.paginationPrevPageButton.click();
-          await sharedPage.waitForTimeout(500);
+          await expect(gachaPage.paginationSummary).toContainText("中 1〜");
 
           const textPrev = await gachaPage.paginationSummary.innerText();
           const matchPrev = textPrev.match(gachaData.pagination.summaryRegex);
@@ -544,7 +520,9 @@ test.describe.serial("UI Gacha Management", () => {
         const totalRecords = parseInt(match[1].replace(/,/g, ""), 10);
         if (totalRecords > pageSize) {
           await gachaPage.paginationLastPageButton.click();
-          await sharedPage.waitForTimeout(500);
+          await expect(gachaPage.paginationSummary).toContainText(
+            `〜${totalRecords} 件`,
+          );
 
           const textLast = await gachaPage.paginationSummary.innerText();
           const matchLast = textLast.match(gachaData.pagination.summaryRegex);
@@ -565,11 +543,13 @@ test.describe.serial("UI Gacha Management", () => {
         if (totalRecords > pageSize) {
           // Đến trang cuối
           await gachaPage.paginationLastPageButton.click();
-          await sharedPage.waitForTimeout(500);
+          await expect(gachaPage.paginationSummary).toContainText(
+            `〜${totalRecords} 件`,
+          );
 
           // Bấm về trang đầu
           await gachaPage.paginationFirstPageButton.click();
-          await sharedPage.waitForTimeout(500);
+          await expect(gachaPage.paginationSummary).toContainText("中 1〜");
 
           const textFirst = await gachaPage.paginationSummary.innerText();
           const matchFirst = textFirst.match(gachaData.pagination.summaryRegex);

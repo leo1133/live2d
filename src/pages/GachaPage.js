@@ -25,9 +25,7 @@ export class GachaPage {
       exact: true,
     });
 
-    this.searchInput = page.getByRole("textbox", {
-      name: gachaData.labels.modelNameInput,
-    });
+    this.searchInput = page.getByPlaceholder(gachaData.labels.modelNameInput);
     this.searchButton = page.getByRole("button", {
       name: gachaData.labels.searchButton,
       exact: true,
@@ -38,7 +36,9 @@ export class GachaPage {
     });
 
     this.dataTable = page.getByRole("table");
-    this.tableRows = this.dataTable.locator("tbody tr:not(.ant-table-placeholder)");
+    this.tableRows = this.dataTable
+      .locator("tbody tr:not(.ant-table-placeholder)")
+      .filter({ hasNotText: gachaData.labels.noDataMessage });
     this.columnStatus = page.getByRole("columnheader", {
       name: gachaData.labels.statusColumn,
       exact: true,
@@ -47,20 +47,18 @@ export class GachaPage {
     this.paginationSummary = page.getByText(
       gachaData.pagination.summaryLocatorRegex,
     );
-    this.paginationNextPageButton = page
-      .getByRole("listitem")
-      .filter({ hasText: gachaData.labels.nextPage });
-    this.paginationPrevPageButton = page
-      .getByRole("listitem")
-      .filter({ hasText: gachaData.labels.prevPage });
-    this.paginationFirstPageButton = page
-      .getByRole("listitem")
-      .filter({ hasText: gachaData.pagination.emptyTextRegex })
-      .first();
-    this.paginationLastPageButton = page
-      .getByRole("listitem")
-      .filter({ hasText: gachaData.pagination.emptyTextRegex })
-      .nth(1);
+    this.paginationFirstPageButton = page.getByRole("button", {
+      name: gachaData.pagination.firstPage,
+    });
+    this.paginationPrevPageButton = page.getByRole("button", {
+      name: gachaData.pagination.prevPage,
+    });
+    this.paginationNextPageButton = page.getByRole("button", {
+      name: gachaData.pagination.nextPage,
+    });
+    this.paginationLastPageButton = page.getByRole("button", {
+      name: gachaData.pagination.lastPage,
+    });
   }
 
   async navigateToGachaList() {
@@ -75,9 +73,17 @@ export class GachaPage {
     }
 
     await Promise.all([
-      this.page.waitForURL(`**${gachaData.url}**`),
+      this.page.waitForURL(`**${gachaData.url}**`, {
+        waitUntil: "domcontentloaded",
+      }),
       this.gachaListLink.click(),
     ]);
+
+    await this.page
+      .getByText("読み込み中")
+      .waitFor({ state: "detached", timeout: 5000 })
+      .catch(() => {});
+    await this.searchInput.waitFor({ state: "visible" });
   }
 
   async toggleSidebar() {
@@ -90,13 +96,50 @@ export class GachaPage {
 
   async searchModel(modelName) {
     await this.searchInput.fill(modelName);
-    await this.searchButton.click();
-    await this.page.waitForTimeout(500);
+    await Promise.all([
+      this.page
+        .waitForResponse((r) => r.url().includes("/api/v1/model-gacha/"), {
+          timeout: 10000,
+        })
+        .catch(() => null),
+      this.searchButton.click(),
+    ]);
   }
 
   async clearFilters() {
-    await this.clearButton.click();
-    await this.page.waitForTimeout(500);
+    try {
+      await this.page
+        .getByText("読み込み中")
+        .waitFor({ state: "detached", timeout: 3000 })
+        .catch(() => {});
+
+      const isEnabled = await this.clearButton.isEnabled().catch(() => false);
+      if (!isEnabled) {
+        const searchVal = await this.searchInput.inputValue().catch(() => "");
+        if (searchVal) {
+          await this.searchInput.fill("").catch(() => {});
+        }
+        return;
+      }
+
+      let requestPromise = null;
+      const onRequest = (req) => {
+        if (req.url().includes("/api/v1/model-gacha/")) {
+          requestPromise = req.response();
+        }
+      };
+      this.page.on("request", onRequest);
+
+      await this.clearButton.click();
+      await this.page.waitForTimeout(50);
+      this.page.off("request", onRequest);
+
+      if (requestPromise) {
+        await requestPromise;
+      }
+    } catch {
+      await this.searchInput.fill("").catch(() => {});
+    }
   }
 
   /**

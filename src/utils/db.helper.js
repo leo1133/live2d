@@ -120,6 +120,12 @@ export class DBHelper {
    * Đóng toàn bộ kết nối khi xong
    */
   static async closePool() {
-    await pool.end();
+    if (pool && !pool.ending) {
+      try {
+        await pool.end();
+      } catch (e) {
+        // Ignore already closed or unreachable errors
+      }
+    }
   }
 }

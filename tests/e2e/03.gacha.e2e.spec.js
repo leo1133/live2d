@@ -6,27 +6,19 @@ import { loginData } from "../../src/test-data/loginData.js";
 import { gachaData } from "../../src/test-data/gachaData.js";
 import { apiGachaData } from "../../src/test-data/apiGachaData.js";
 import { METHODS, HTTP_STATUS_CODE } from "../../src/utils/constants.js";
-import { ENDPOINTS } from "../../src/config/endpoint.js";
-import path from "path";
-import fs from "fs";
+import { ENDPOINTS, getUiSessionFile } from "../../src/config/endpoint.js";
 
 test.describe.serial("E2E Gacha Management", () => {
   let sharedPage;
   let gachaPage;
   let gachaApi;
 
-  // =========================================================================
-  // [CŨ - 65 DÒNG]: Đọc fs/path và try...catch login thủ công
-  // =========================================================================
-  /*
   test.beforeAll(async ({ browser }) => {
     test.setTimeout(60000);
-    const authPath = path.resolve(process.cwd(), "tests/auth/ui_admin.json");
-    const hasStorageState = fs.existsSync(authPath);
 
     const context = await browser.newContext({
       baseURL: process.env.UI_BASE_URL,
-      storageState: hasStorageState ? authPath : undefined,
+      storageState: getUiSessionFile(),
       httpCredentials: process.env.BASIC_AUTH_USER
         ? {
             username: process.env.BASIC_AUTH_USER,
@@ -36,31 +28,8 @@ test.describe.serial("E2E Gacha Management", () => {
     });
     sharedPage = await context.newPage();
     gachaPage = new GachaPage(sharedPage);
-
-    const loginPage = new LoginPage(sharedPage);
-    await loginPage.goto();
-    await loginPage.login(
-      loginData.credentials.account,
-      loginData.credentials.password,
-    );
-    try {
-      await loginPage.verifyLoginSuccess(new RegExp(gachaData.titles.dashboard));
-    } catch (err) {
-      console.warn("Retrying login after transient failure...");
-    }
-
-    await gachaPage.navigateToGachaList();
-  });
-  */
-
-  // =========================================================================
-  // [MỚI - TỐI ƯU GỌN GÀNG]: Tận dụng storageState cấu hình sẵn từ playwright.config.js
-  // =========================================================================
-  test.beforeAll(async ({ browser }) => {
-    test.setTimeout(60000);
-    sharedPage = await browser.newPage();
-    gachaPage = new GachaPage(sharedPage);
-    await gachaPage.navigateToGachaList();
+    await sharedPage.goto(gachaData.url, { waitUntil: "domcontentloaded" });
+    await gachaPage.searchInput.waitFor({ state: "visible", timeout: 15000 });
   });
 
   test.beforeEach(async ({ authenticatedRequest }) => {
@@ -115,8 +84,7 @@ test.describe.serial("E2E Gacha Management", () => {
       expect(uiTotalCount).toBe(body.total_count);
     }
 
-    const rowsCount = await gachaPage.tableRows.count();
-    expect(rowsCount).toBe(body.data.length);
+    await expect(gachaPage.tableRows).toHaveCount(body.data.length);
   });
 
   test("TC02: Đồng bộ dữ liệu từng hàng trong Table (UI vs API)", async () => {
@@ -155,8 +123,7 @@ test.describe.serial("E2E Gacha Management", () => {
 
     const searchBody = await fetchGachaApi({ keyword });
 
-    const uiRowsCount = await gachaPage.tableRows.count();
-    expect(uiRowsCount).toBe(searchBody.data.length);
+    await expect(gachaPage.tableRows).toHaveCount(searchBody.data.length);
 
     if (searchBody.data.length > 0) {
       const firstRow = gachaPage.tableRows.first();
@@ -180,8 +147,7 @@ test.describe.serial("E2E Gacha Management", () => {
       status: apiGachaData.filterParams.status.public,
     });
 
-    const publicRowsCount = await gachaPage.tableRows.count();
-    expect(publicRowsCount).toBe(publicBody.data.length);
+    await expect(gachaPage.tableRows).toHaveCount(publicBody.data.length);
   });
 
   test("TC05: Tìm kiếm No Data đồng bộ (UI vs API)", async () => {
@@ -210,7 +176,6 @@ test.describe.serial("E2E Gacha Management", () => {
 
     const body = await fetchGachaApi();
 
-    const rowsCount = await gachaPage.tableRows.count();
-    expect(rowsCount).toBe(body.data.length);
+    await expect(gachaPage.tableRows).toHaveCount(body.data.length);
   });
 });

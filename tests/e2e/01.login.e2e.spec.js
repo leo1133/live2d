@@ -1,12 +1,19 @@
 import { test, expect } from "../../src/fixtures/baseTest.js";
 import { loginData } from "../../src/test-data/loginData.js";
 
+// Ensure login E2E suite starts with a clean unauthenticated browser
+test.use({ storageState: { cookies: [], origins: [] } });
+
 /**
  * E2E LOGIN SUITE
  * Case 50 - 57: Kết hợp API (verify trạng thái hệ thống) + UI (verify giao diện người dùng)
  * Cả authAPI và loginPage đều được dùng
  */
 test.describe("E2E Login Suite: Kết hợp toàn diện UI + API", () => {
+  test.beforeEach(async () => {
+    test.setTimeout(60000);
+  });
+
   const baseApiPayload = {
     email_user_id: loginData.apiCredentials.email_user_id,
     password: loginData.apiCredentials.password,

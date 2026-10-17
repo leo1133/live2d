@@ -1,4 +1,4 @@
-import { ENDPOINTS } from "../config/endpoint.js";
+import { ENDPOINTS, getApiBaseUrl } from "../config/endpoint.js";
 
 export class GachaAPI {
   /**
@@ -6,8 +6,7 @@ export class GachaAPI {
    */
   constructor(request) {
     this.request = request;
-    const apiBaseUrl = process.env.API_BASE_URL || 'https://api-admin-dev.surrealdolls.com';
-    this.gachaEndpoint = apiBaseUrl + ENDPOINTS.GACHA.GET_LIST;
+    this.gachaEndpoint = getApiBaseUrl() + ENDPOINTS.GACHA.GET_LIST;
   }
 
   /**

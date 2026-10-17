@@ -12,7 +12,8 @@
     "dotenv": "^18.0.4"
   },
   "scripts": {
-    "codegen:dev": "ENV=dev npx playwright codegen https://suriaru:suriaru@admin-dev.surrealdolls.com/sign-in",
+    "codegen:dev": "ENV=dev node -e \"import('dotenv').then(({default: d}) => d.config({path: '.env.dev'})).then(() => import('child_process')).then(({execSync}) => execSync(`npx playwright codegen ${process.env.UI_BASE_URL}/sign-in`, {stdio: 'inherit'}))",
+    "test": "npx playwright test",
     "test:dev": "ENV=dev npx playwright test",
     "test:stg": "ENV=staging npx playwright test",
     "test:ui:dev": "ENV=dev npx playwright test --ui",

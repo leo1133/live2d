@@ -89,12 +89,13 @@ export class UserPage {
     }
 
     await Promise.all([
-      this.page.waitForURL(`**${userData.url}**`),
+      this.page.waitForURL(`**${userData.url}**`, {
+        waitUntil: "domcontentloaded",
+      }),
       this.userLink.click(),
     ]);
 
     await this.searchInput.waitFor({ state: "visible" });
-    await this.page.waitForTimeout(500);
   }
 
   /**
@@ -139,8 +140,14 @@ export class UserPage {
       .isEnabled({ timeout: 1000 })
       .catch(() => false);
     if (isSearchEnabled) {
-      await this.searchButton.click();
-      await this.page.waitForTimeout(500);
+      await Promise.all([
+        this.page
+          .waitForResponse((r) => r.url().includes("/api/v1/user/"), {
+            timeout: 10000,
+          })
+          .catch(() => null),
+        this.searchButton.click(),
+      ]);
     }
   }
 
@@ -149,13 +156,37 @@ export class UserPage {
    */
   async clearFilters() {
     try {
-      const isClearEnabled = await this.clearButton
-        .isEnabled({ timeout: 1000 })
-        .catch(() => false);
-      if (isClearEnabled) {
-        await this.clearButton.click({ timeout: 2000 });
-        await this.page.waitForTimeout(300);
+      await this.page
+        .getByText("読み込み中")
+        .waitFor({ state: "detached", timeout: 3000 })
+        .catch(() => {});
+
+      const isEnabled = await this.clearButton.isEnabled().catch(() => false);
+      if (!isEnabled) {
+        const searchVal = await this.searchInput.inputValue().catch(() => "");
+        if (searchVal) {
+          await this.searchInput.fill("").catch(() => {});
+        }
+        return;
       }
-    } catch (e) {}
+
+      let requestPromise = null;
+      const onRequest = (req) => {
+        if (req.url().includes("/api/v1/user/")) {
+          requestPromise = req.response();
+        }
+      };
+      this.page.on("request", onRequest);
+
+      await this.clearButton.click();
+      await this.page.waitForTimeout(50);
+      this.page.off("request", onRequest);
+
+      if (requestPromise) {
+        await requestPromise;
+      }
+    } catch {
+      await this.searchInput.fill("").catch(() => {});
+    }
   }
 }
