@@ -214,4 +214,190 @@ test.describe("API GET List User Test Suite", () => {
       },
     );
   });
+
+  // =========================================================================
+  // 5. DATABASE VERIFICATION (DB INTEGRITY)
+  // =========================================================================
+  test.describe("5. Database Verification (DB Integrity)", () => {
+    let userApi;
+    let isDbAvailable = false;
+
+    test.beforeAll(async () => {
+      const { DBHelper } = await import("../../src/utils/db.helper.js");
+      isDbAvailable = await DBHelper.isConnected();
+    });
+
+    test.beforeEach(async ({ authenticatedRequest }) => {
+      test.skip(
+        !isDbAvailable,
+        "⚠️ Bỏ qua DB tests: Không thể kết nối tới Database (Database offline hoặc chưa bật)",
+      );
+      userApi = new UserAPI(authenticatedRequest);
+    });
+
+    test("TC_DB01: Đồng bộ Total Count và số lượng items giữa API và DB", async ({
+      db,
+    }) => {
+      const queryParams = { page: 1, items_per_page: 10 };
+
+      const response = await userApi.getUsers({
+        method: METHODS.GET,
+        queryParams,
+      });
+
+      expect(response.status()).toBe(200);
+      const body = await response.json();
+
+      // Truy vấn DB tương ứng
+      const dbResult = await db.getUserManagementList({
+        page: queryParams.page,
+        itemsPerPage: queryParams.items_per_page,
+      });
+
+      expect(body.total_count).toBe(dbResult.totalCount);
+      expect(body.data.length).toBe(dbResult.rows.length);
+    });
+
+    test("TC_DB02: Đồng bộ chi tiết từng trường dữ liệu (Field-by-Field) của User Item giữa API và DB", async ({
+      db,
+    }) => {
+      const response = await userApi.getUsers({
+        method: METHODS.GET,
+        queryParams: { page: 1, items_per_page: 10 },
+      });
+
+      expect(response.status()).toBe(200);
+      const body = await response.json();
+
+      if (body.data.length > 0) {
+        const randomIndex = Math.floor(Math.random() * body.data.length);
+        const apiItem = body.data[randomIndex];
+
+        // Lấy bản ghi tương ứng từ DB theo ID
+        const dbItem = await db.getUserManagementById(apiItem.user_id);
+        expect(dbItem).toBeDefined();
+
+        // 1. Thông tin định danh cơ bản
+        expect(apiItem.user_id).toBe(Number(dbItem.id));
+        expect(apiItem.user_uid).toBe(dbItem.code);
+        expect(apiItem.user_name).toBe(dbItem.display_name);
+        expect(apiItem.status).toBe(dbItem.status);
+
+        // 2. Agency & Streamer Type
+        if (dbItem.agency_name) {
+          expect(apiItem.agency_name).toBe(dbItem.agency_name);
+        }
+        if (
+          dbItem.streamer_type !== null &&
+          dbItem.streamer_type !== undefined
+        ) {
+          expect(Number(apiItem.streamer_type)).toBe(
+            Number(dbItem.streamer_type),
+          );
+        }
+
+        // 3. Chỉ số tương tác (Social counts)
+        expect(Number(apiItem.following_count)).toBe(
+          Number(dbItem.following_count || 0),
+        );
+        expect(Number(apiItem.follower_count)).toBe(
+          Number(dbItem.follower_count || 0),
+        );
+        expect(Number(apiItem.livestream_like_count)).toBe(
+          Number(dbItem.livestream_like_count || 0),
+        );
+
+        // 4. Thời lượng livestream & Lần cuối livestream
+        if (
+          dbItem.total_stream_duration !== null &&
+          dbItem.total_stream_duration !== undefined
+        ) {
+          expect(Number(apiItem.livestream_duration)).toBe(
+            Number(dbItem.total_stream_duration),
+          );
+        }
+
+        // 5. Doanh thu theo nguồn
+        expect(Number(apiItem.gift_sales)).toBe(Number(dbItem.gift_sales || 0));
+        expect(Number(apiItem.two_shot_sales)).toBe(
+          Number(dbItem.two_shot_sales || 0),
+        );
+        expect(Number(apiItem.whisper_sales)).toBe(
+          Number(dbItem.whisper_sales || 0),
+        );
+        expect(Number(apiItem.yell_sales)).toBe(Number(dbItem.yell_sales || 0));
+        expect(Number(apiItem.familia_sales)).toBe(
+          Number(dbItem.familia_sales || 0),
+        );
+
+        // 6. Trạng thái xác thực danh tính
+        if (dbItem.ekyc_status !== null && dbItem.ekyc_status !== undefined) {
+          expect(Number(apiItem.ekyc_status)).toBe(Number(dbItem.ekyc_status));
+        }
+      }
+    });
+
+    test("TC_DB03: Đồng bộ dữ liệu khi lọc theo Status", async ({ db }) => {
+      const targetStatus = 1;
+
+      const response = await userApi.getUsers({
+        method: METHODS.GET,
+        queryParams: {
+          page: 1,
+          items_per_page: 10,
+          user_status: targetStatus,
+        },
+      });
+
+      expect(response.status()).toBe(200);
+      const body = await response.json();
+
+      const dbResult = await db.getUserManagementList({
+        page: 1,
+        itemsPerPage: 10,
+        status: targetStatus,
+      });
+
+      expect(body.total_count).toBe(dbResult.totalCount);
+      expect(body.data.length).toBe(dbResult.rows.length);
+
+      for (const item of body.data) {
+        expect(item.status).toBe(targetStatus);
+      }
+    });
+
+    test("TC_DB04: Đồng bộ dữ liệu khi tìm kiếm theo Keyword", async ({
+      db,
+    }) => {
+      const defaultDbData = await db.getUserManagementList({
+        page: 1,
+        itemsPerPage: 1,
+      });
+      const keyword =
+        defaultDbData.rows.length > 0
+          ? defaultDbData.rows[0].display_name || defaultDbData.rows[0].code
+          : "admin";
+
+      const response = await userApi.getUsers({
+        method: METHODS.GET,
+        queryParams: {
+          page: 1,
+          items_per_page: 10,
+          keyword: keyword,
+        },
+      });
+
+      expect(response.status()).toBe(200);
+      const body = await response.json();
+
+      const dbResult = await db.getUserManagementList({
+        page: 1,
+        itemsPerPage: 10,
+        keyword: keyword,
+      });
+
+      expect(body.total_count).toBe(dbResult.totalCount);
+      expect(body.data.length).toBe(dbResult.rows.length);
+    });
+  });
 });

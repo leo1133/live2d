@@ -173,6 +173,8 @@ DB_PASSWORD=
   - `DBHelper.deleteUserByEmail(email)`: Xóa / dọn dẹp dữ liệu rác sau khi chạy test.
   - `DBHelper.getGachaById(id)`: Truy vấn chi tiết 1 Model/Gacha từ bảng `public.three_d_models` (kèm điều kiện `is_deleted = false`).
   - `DBHelper.getGachaList(options)`: Truy vấn danh sách Model/Gacha từ bảng `public.three_d_models` có phân trang (`LIMIT`/`OFFSET`), bộ lọc (`keyword`, `status`), lọc `is_deleted = false` và sắp xếp chuẩn `ORDER BY id DESC`.
+  - `DBHelper.getUserManagementById(userId)`: Truy vấn chi tiết 1 User cho màn Quản lý người dùng theo ID (đầy đủ thông tin định danh, agency mới nhất, streamer type, follower/following count, livestream stats, sales theo từng nguồn, ekyc).
+  - `DBHelper.getUserManagementList(options)`: Truy vấn danh sách User màn Quản lý người dùng có phân trang, bộ lọc (`keyword`, `status`, `userId`), tính `totalCount` và sắp xếp `ORDER BY u.id DESC`.
   - `DBHelper.closePool()`: Đóng connection pool kết nối PostgreSQL.
 
 ### 2. Xử lý dữ liệu CSV Data-Driven (`csv-parse`)
@@ -184,11 +186,11 @@ DB_PASSWORD=
 
 ### 3. Cơ chế Database Verification (API vs DB) & Auto-Skip
 
-- **Áp dụng tại**: [`tests/api/03.gacha.api.spec.js`](tests/api/03.gacha.api.spec.js)
+- **Áp dụng tại**: [`tests/api/02.user.api.spec.js`](tests/api/02.user.api.spec.js), [`tests/api/03.gacha.api.spec.js`](tests/api/03.gacha.api.spec.js)
 - **Cơ chế so khớp**:
   - **Total Count & Pagination**: So sánh `total_count` và độ dài mảng dữ liệu trả về từ API với `COUNT(*)` và `LIMIT/OFFSET` từ PostgreSQL.
-  - **Field-by-Field Integrity**: Lấy item từ API, truy vấn trực tiếp từ bảng `public.three_d_models` theo `id` để đối chiếu từng trường (`name`, `status`, `created_at`, `updated_at`...).
-  - **Filter & Search Sync**: Đối chiếu kết quả khi lọc `status` (公開 / 非公開) và tìm kiếm `keyword` giữa API và câu lệnh SQL tương ứng.
+  - **Field-by-Field Integrity**: Lấy item từ API, truy vấn trực tiếp từ DB theo ID để đối chiếu từng trường (user info, streamer type, agency, follow count, duration, sales, ekyc...).
+  - **Filter & Search Sync**: Đối chiếu kết quả khi lọc `status` và tìm kiếm `keyword` giữa API và câu lệnh SQL tương ứng.
 - **Auto-Skip an toàn khi DB Offline**:
   - Trước khi chạy suite test DB, hệ thống tự động kiểm tra `DBHelper.isConnected()`.
   - Nếu Database cục bộ chưa được bật hoặc không thể kết nối, test runner sẽ **tự động Skip** nhóm test DB với lý do rõ ràng, đảm bảo toàn bộ các test cases API khác vẫn chạy thành công mà không bị crash/fail.
