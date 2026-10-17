@@ -1,4 +1,5 @@
 import { gachaData } from "../test-data/gachaData.js";
+import { ENDPOINTS } from "../config/endpoint.js";
 
 export class GachaPage {
   constructor(page) {
@@ -26,6 +27,7 @@ export class GachaPage {
     });
 
     this.searchInput = page.getByPlaceholder(gachaData.labels.modelNameInput);
+    this.statusFilterDropdown = page.locator(gachaData.selectors.statusDropdown).first();
     this.searchButton = page.getByRole("button", {
       name: gachaData.labels.searchButton,
       exact: true,
@@ -37,7 +39,7 @@ export class GachaPage {
 
     this.dataTable = page.getByRole("table");
     this.tableRows = this.dataTable
-      .locator("tbody tr:not(.ant-table-placeholder)")
+      .locator(gachaData.selectors.tableRows)
       .filter({ hasNotText: gachaData.labels.noDataMessage });
     this.columnStatus = page.getByRole("columnheader", {
       name: gachaData.labels.statusColumn,
@@ -80,7 +82,7 @@ export class GachaPage {
     ]);
 
     await this.page
-      .getByText("読み込み中")
+      .getByText(gachaData.labels.loadingMessage)
       .waitFor({ state: "detached", timeout: 5000 })
       .catch(() => {});
     await this.searchInput.waitFor({ state: "visible" });
@@ -98,7 +100,7 @@ export class GachaPage {
     await this.searchInput.fill(modelName);
     await Promise.all([
       this.page
-        .waitForResponse((r) => r.url().includes("/api/v1/model-gacha/"), {
+        .waitForResponse((r) => r.url().includes(ENDPOINTS.GACHA.GET_LIST), {
           timeout: 10000,
         })
         .catch(() => null),
@@ -109,7 +111,7 @@ export class GachaPage {
   async clearFilters() {
     try {
       await this.page
-        .getByText("読み込み中")
+        .getByText(gachaData.labels.loadingMessage)
         .waitFor({ state: "detached", timeout: 3000 })
         .catch(() => {});
 
@@ -124,7 +126,7 @@ export class GachaPage {
 
       let requestPromise = null;
       const onRequest = (req) => {
-        if (req.url().includes("/api/v1/model-gacha/")) {
+        if (req.url().includes(ENDPOINTS.GACHA.GET_LIST)) {
           requestPromise = req.response();
         }
       };
@@ -151,7 +153,7 @@ export class GachaPage {
   async getCellText(rowIndex, colIndex) {
     if ((await this.tableRows.count()) <= rowIndex) return "";
     const row = this.tableRows.nth(rowIndex);
-    const cell = row.locator("td").nth(colIndex);
+    const cell = row.locator(gachaData.selectors.tableCell).nth(colIndex);
     if ((await cell.count()) === 0) return "";
     return (await cell.innerText()).trim();
   }

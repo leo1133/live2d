@@ -1,5 +1,4 @@
-import { HTTP_STATUS_CODE } from '../utils/constants.js';
-import { ENDPOINTS, getApiBaseUrl } from '../config/endpoint.js';
+import { ENDPOINTS, getApiBaseUrl } from "../config/endpoint.js";
 
 export class AuthAPI {
   /**
@@ -13,7 +12,7 @@ export class AuthAPI {
   }
 
   getHeaders() {
-    return { 'Accept': 'application/json' };
+    return { Accept: "application/json" };
   }
 
   /**
@@ -22,11 +21,15 @@ export class AuthAPI {
    * @param {Object} [customHeaders] - Header tuỳ chỉnh (nếu có)
    */
   async login(payload, customHeaders) {
-    const headers = customHeaders !== undefined
-      ? { ...this.getHeaders(), ...customHeaders }
-      : this.getHeaders();
+    const headers =
+      customHeaders !== undefined
+        ? { ...this.getHeaders(), ...customHeaders }
+        : this.getHeaders();
 
-    return await this.request.post(this.loginEndpoint, { data: payload, headers });
+    return await this.request.post(this.loginEndpoint, {
+      data: payload,
+      headers,
+    });
   }
 
   /**
@@ -38,13 +41,13 @@ export class AuthAPI {
     const httpMethod = method.toUpperCase();
 
     switch (httpMethod) {
-      case 'GET':
+      case "GET":
         return await this.request.get(this.loginEndpoint, { headers });
-      case 'PUT':
+      case "PUT":
         return await this.request.put(this.loginEndpoint, { headers });
-      case 'PATCH':
+      case "PATCH":
         return await this.request.patch(this.loginEndpoint, { headers });
-      case 'DELETE':
+      case "DELETE":
         return await this.request.delete(this.loginEndpoint, { headers });
       default:
         throw new Error(`Unsupported HTTP method: ${method}`);

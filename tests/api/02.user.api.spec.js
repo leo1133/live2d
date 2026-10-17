@@ -5,7 +5,7 @@ import { loadUserListCsvCases } from "../../src/utils/csvHelper.js";
 import { METHODS } from "../../src/utils/constants.js";
 import { generateOtherMethodNotChoose } from "../../src/utils/helpers.js";
 
-const csvTestCases = loadUserListCsvCases("src/test-data/csv/getListUser.csv");
+const csvTestCases = loadUserListCsvCases(userData.csvPath);
 
 test.describe("API GET List User Test Suite", () => {
   test.describe("1. Happy Path Cases", () => {

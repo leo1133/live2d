@@ -1,6 +1,7 @@
 export const gachaData = {
   url: "/gachas/avatar-list",
   dashboardUrl: "/",
+  csvPath: "src/test-data/csv/getListGacha.csv",
   titles: {
     dashboard: "ダッシュボード",
   },
@@ -13,6 +14,7 @@ export const gachaData = {
     modelNameInput: "モデル名",
     searchButton: "検索",
     clearButton: "クリア",
+    loadingMessage: "読み込み中",
     statusColumn: "ステータス",
     idColumn: "ID",
     modelNameColumn: "モデル名",
@@ -37,6 +39,8 @@ export const gachaData = {
   selectors: {
     editIcon: "svg, i, .icon-edit",
     tableCell: "td",
+    tableRows: "tbody tr:not(.ant-table-placeholder)",
+    statusDropdown: 'button[role="combobox"]',
   },
   editAriaLabels: {
     limitedRegex: /の期間限定ガチャを編集/,

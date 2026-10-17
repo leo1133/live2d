@@ -130,7 +130,9 @@ test.describe.serial('UI Login Suite: Kiểm tra thao tác giao diện DOM', () 
   test('Case 18: Kiểm tra khi click hyperlink Forgot password', async () => {
     await expect(loginPage.forgotPasswordLink).toBeVisible();
     await loginPage.forgotPasswordLink.click();
-    const confirmBtn = sharedPage.getByRole('button', { name: 'はい' });
+    const confirmBtn = sharedPage.getByRole('button', {
+      name: loginData.forgotPasswordScreen.confirmButton,
+    });
     if (await confirmBtn.isVisible({ timeout: 1500 }).catch(() => false)) {
       await confirmBtn.click();
     }
