@@ -1,5 +1,6 @@
 import { test, expect } from "../../src/fixtures/baseTest.js";
 import { loginData } from "../../src/test-data/loginData.js";
+import { HTTP_STATUS_CODE } from "../../src/utils/constants.js";
 
 // Ensure login E2E suite starts with a clean unauthenticated browser
 test.use({ storageState: { cookies: [], origins: [] } });
@@ -25,16 +26,22 @@ test.describe("E2E Login Suite: Kết hợp toàn diện UI + API", () => {
     authAPI,
     loginPage,
   }) => {
-    const apiResponse = await authAPI.login(baseApiPayload);
-    expect([200, 401, 403]).toContain(apiResponse.status());
+    const [apiResponse] = await Promise.all([
+      authAPI.login(baseApiPayload),
+      loginPage.goto(),
+    ]);
+    expect([
+      HTTP_STATUS_CODE.OK,
+      HTTP_STATUS_CODE.UNAUTHORIZED,
+      HTTP_STATUS_CODE.FORBIDDEN,
+    ]).toContain(apiResponse.status());
 
-    await loginPage.goto();
     await loginPage.login(
       loginData.credentials.account,
       loginData.credentials.password,
     );
 
-    if (apiResponse.status() === 200) {
+    if (apiResponse.status() === HTTP_STATUS_CODE.OK) {
       try {
         await loginPage.verifyLoginSuccess(
           loginData.credentials.textLoginSuccess,
@@ -61,20 +68,29 @@ test.describe("E2E Login Suite: Kết hợp toàn diện UI + API", () => {
     authAPI,
     loginPage,
   }) => {
+    // 1s cooldown to prevent Firebase token exchange rate-limiting on same account UID
+    await page.waitForTimeout(1000);
+
     const idPayload = {
       ...baseApiPayload,
       email_user_id: process.env.ADMIN_ID,
     };
-    const apiResponse = await authAPI.login(idPayload);
-    expect([200, 401, 403]).toContain(apiResponse.status());
+    const [apiResponse] = await Promise.all([
+      authAPI.login(idPayload),
+      loginPage.goto(),
+    ]);
+    expect([
+      HTTP_STATUS_CODE.OK,
+      HTTP_STATUS_CODE.UNAUTHORIZED,
+      HTTP_STATUS_CODE.FORBIDDEN,
+    ]).toContain(apiResponse.status());
 
-    await loginPage.goto();
     await loginPage.login(
       loginData.credentials.accountId,
       loginData.credentials.password,
     );
 
-    if (apiResponse.status() === 200) {
+    if (apiResponse.status() === HTTP_STATUS_CODE.OK) {
       try {
         await loginPage.verifyLoginSuccess(
           loginData.credentials.textLoginSuccess,
@@ -101,13 +117,15 @@ test.describe("E2E Login Suite: Kết hợp toàn diện UI + API", () => {
     authAPI,
     loginPage,
   }) => {
-    const apiResponse = await authAPI.login({
-      ...baseApiPayload,
-      password: loginData.credentials.wrongPassword,
-    });
-    expect(apiResponse.status()).toBe(401);
+    const [apiResponse] = await Promise.all([
+      authAPI.login({
+        ...baseApiPayload,
+        password: loginData.credentials.wrongPassword,
+      }),
+      loginPage.goto(),
+    ]);
+    expect(apiResponse.status()).toBe(HTTP_STATUS_CODE.UNAUTHORIZED);
 
-    await loginPage.goto();
     await loginPage.login(
       loginData.credentials.account,
       loginData.credentials.wrongPassword,
@@ -120,13 +138,15 @@ test.describe("E2E Login Suite: Kết hợp toàn diện UI + API", () => {
     authAPI,
     loginPage,
   }) => {
-    const apiResponse = await authAPI.login({
-      ...baseApiPayload,
-      email_user_id: loginData.credentials.wrongEmail,
-    });
-    expect(apiResponse.status()).toBe(401);
+    const [apiResponse] = await Promise.all([
+      authAPI.login({
+        ...baseApiPayload,
+        email_user_id: loginData.credentials.wrongEmail,
+      }),
+      loginPage.goto(),
+    ]);
+    expect(apiResponse.status()).toBe(HTTP_STATUS_CODE.UNAUTHORIZED);
 
-    await loginPage.goto();
     await loginPage.login(
       loginData.credentials.wrongEmail,
       loginData.credentials.password,
@@ -139,14 +159,16 @@ test.describe("E2E Login Suite: Kết hợp toàn diện UI + API", () => {
     authAPI,
     loginPage,
   }) => {
-    const apiResponse = await authAPI.login({
-      ...baseApiPayload,
-      email_user_id: loginData.credentials.wrongEmail,
-      password: loginData.credentials.wrongPassword,
-    });
-    expect(apiResponse.status()).toBe(401);
+    const [apiResponse] = await Promise.all([
+      authAPI.login({
+        ...baseApiPayload,
+        email_user_id: loginData.credentials.wrongEmail,
+        password: loginData.credentials.wrongPassword,
+      }),
+      loginPage.goto(),
+    ]);
+    expect(apiResponse.status()).toBe(HTTP_STATUS_CODE.UNAUTHORIZED);
 
-    await loginPage.goto();
     await loginPage.login(
       loginData.credentials.wrongEmail,
       loginData.credentials.wrongPassword,
@@ -159,13 +181,15 @@ test.describe("E2E Login Suite: Kết hợp toàn diện UI + API", () => {
     authAPI,
     loginPage,
   }) => {
-    const apiResponse = await authAPI.login({
-      ...baseApiPayload,
-      email_user_id: "",
-    });
-    expect(apiResponse.status()).toBe(422);
+    const [apiResponse] = await Promise.all([
+      authAPI.login({
+        ...baseApiPayload,
+        email_user_id: "",
+      }),
+      loginPage.goto(),
+    ]);
+    expect(apiResponse.status()).toBe(HTTP_STATUS_CODE.UNPROCESSABLE_ENTITY);
 
-    await loginPage.goto();
     await loginPage.passwordInput.fill(loginData.credentials.password);
     await loginPage.loginButton.click();
     await expect(
@@ -178,13 +202,15 @@ test.describe("E2E Login Suite: Kết hợp toàn diện UI + API", () => {
     authAPI,
     loginPage,
   }) => {
-    const apiResponse = await authAPI.login({
-      ...baseApiPayload,
-      password: "",
-    });
-    expect(apiResponse.status()).toBe(422);
+    const [apiResponse] = await Promise.all([
+      authAPI.login({
+        ...baseApiPayload,
+        password: "",
+      }),
+      loginPage.goto(),
+    ]);
+    expect(apiResponse.status()).toBe(HTTP_STATUS_CODE.UNPROCESSABLE_ENTITY);
 
-    await loginPage.goto();
     await loginPage.accountInput.fill(loginData.credentials.account);
     await loginPage.loginButton.click();
     await expect(
@@ -197,14 +223,16 @@ test.describe("E2E Login Suite: Kết hợp toàn diện UI + API", () => {
     authAPI,
     loginPage,
   }) => {
-    const apiResponse = await authAPI.login({
-      ...baseApiPayload,
-      email_user_id: "",
-      password: "",
-    });
-    expect(apiResponse.status()).toBe(422);
+    const [apiResponse] = await Promise.all([
+      authAPI.login({
+        ...baseApiPayload,
+        email_user_id: "",
+        password: "",
+      }),
+      loginPage.goto(),
+    ]);
+    expect(apiResponse.status()).toBe(HTTP_STATUS_CODE.UNPROCESSABLE_ENTITY);
 
-    await loginPage.goto();
     await loginPage.loginButton.click();
     await expect(
       page.getByText(loginData.messages.accountRequired),

@@ -54,7 +54,7 @@ export const commonAcceptTestCases = [
     tcId: "TC_HEADER_04",
     title: "Unsupported Accept header (application/xml)",
     headers: { Accept: "application/xml" },
-    expectedStatus: [HTTP_STATUS_CODE.OK, HTTP_STATUS_CODE.NOT_ACCEPTABLE || 406],
+    expectedStatus: [HTTP_STATUS_CODE.OK, HTTP_STATUS_CODE.NOT_ACCEPTABLE],
   },
 ];
 

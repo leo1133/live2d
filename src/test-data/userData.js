@@ -1,6 +1,7 @@
 export const userData = {
   url: "/users",
   dashboardUrl: "/",
+  csvPath: "src/test-data/csv/getListUser.csv",
   titles: {
     dashboard: "ダッシュボード",
   },
@@ -8,6 +9,8 @@ export const userData = {
     breadcrumbItem: 'li[data-slot="breadcrumb-item"]',
     breadcrumbCurrentPage: "span[aria-current='page']",
     tableRows: "table tbody tr",
+    combobox: 'button[role="combobox"]',
+    paginationSummary: 'p:has-text("件を表示")',
   },
   labels: {
     menuLink: "利用者管理",
@@ -21,6 +24,7 @@ export const userData = {
     liverTypeFilter: "すべて(ライバー種類)",
     searchButton: "検索",
     clearButton: "クリア",
+    loadingMessage: "読み込み中",
     noDataMessage: "一致する検索結果はありません。",
   },
   filterOptions: {
@@ -96,6 +100,7 @@ export const userData = {
   ],
   testKeywords: {
     validAdmin: "admin",
+    notFoundPulldown: "NOT_FOUND_9999",
     notFoundForPagination: "NOT_FOUND_NO_DATA_9999",
     notFoundForTable: "NOT_FOUND_FOR_TABLE_TEST_999",
   },

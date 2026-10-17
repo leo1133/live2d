@@ -1,5 +1,7 @@
 import { expect } from "@playwright/test";
 import { loginData } from "../test-data/loginData.js";
+import { ENDPOINTS } from "../config/endpoint.js";
+import { HTTP_STATUS_CODE } from "../utils/constants.js";
 
 export class LoginPage {
   /**
@@ -24,25 +26,20 @@ export class LoginPage {
     });
 
     this.toastErrorMsg = page.getByText(loginData.messages.invalidCredentials);
+    this.toastNotifications = page.locator(
+      loginData.selectors.toastNotifications,
+    );
   }
 
   async goto() {
     try {
-      await this.page.goto(loginData.url, { waitUntil: "domcontentloaded" });
+      await this.page.goto(loginData.url, { waitUntil: "load" });
     } catch {
       await this.page.waitForTimeout(1000);
-      await this.page.goto(loginData.url, { waitUntil: "domcontentloaded" });
+      await this.page.goto(loginData.url, { waitUntil: "load" });
     }
     await this.accountInput.waitFor({ state: "visible" });
     await this.loginButton.waitFor({ state: "visible" });
-
-    // Wait for version check or initial hydration request
-    await this.page
-      .waitForResponse(
-        (resp) => resp.url().includes("/api/v1/common/version"),
-        { timeout: 3500 },
-      )
-      .catch(() => null);
 
     // Ensure Next.js client component hydration has completed before interaction
     await this.page
@@ -60,55 +57,33 @@ export class LoginPage {
   }
 
   async login(account, password) {
-    await this.accountInput.waitFor({ state: "visible" });
-    await this.loginButton.waitFor({ state: "visible" });
-
     if (account !== undefined) {
-      await this.accountInput.click();
       await this.accountInput.fill(account);
-      if (account) {
-        await expect(this.accountInput)
-          .toHaveValue(account, { timeout: 3000 })
-          .catch(async () => {
-            await this.accountInput.click();
-            await this.accountInput.fill(account);
-          });
-      }
     }
     if (password !== undefined) {
-      await this.passwordInput.click();
       await this.passwordInput.fill(password);
-      if (password) {
-        await expect(this.passwordInput)
-          .toHaveValue(password, { timeout: 3000 })
-          .catch(async () => {
-            await this.passwordInput.click();
-            await this.passwordInput.fill(password);
-          });
-      }
     }
 
-    // Double-check inputs are still filled before submitting (guard against delayed React hydration reset)
+    // Guard: React hydration in Next.js can reset inputs if mounting coincided with fill
     if (account && (await this.accountInput.inputValue()) !== account) {
-      await this.accountInput.click();
       await this.accountInput.fill(account);
     }
     if (password && (await this.passwordInput.inputValue()) !== password) {
-      await this.passwordInput.click();
       await this.passwordInput.fill(password);
     }
 
     const loginResponsePromise = this.page
-      .waitForResponse((resp) => resp.url().includes("/api/v1/auth/login/"), {
-        timeout: 15000,
+      .waitForResponse((resp) => resp.url().includes(ENDPOINTS.AUTH.LOGIN), {
+        timeout: 10000,
       })
       .catch(() => null);
 
     await this.loginButton.click();
     const loginResponse = await loginResponsePromise;
+
     if (loginResponse) {
       const status = loginResponse.status();
-      if (status !== 200) {
+      if (status !== HTTP_STATUS_CODE.OK) {
         const respText = await loginResponse.text().catch(() => "");
         console.error(
           `\n[LOGIN API ERROR] Status: ${status}, Body: ${respText}\n`,
@@ -118,30 +93,52 @@ export class LoginPage {
   }
 
   async verifyLoginSuccess(expectedTitle) {
-    try {
-      const racePromises = [
-        this.page.waitForURL((url) => !url.pathname.includes("/sign-in"), {
-          timeout: 15000,
-          waitUntil: "domcontentloaded",
-        }),
-      ];
-      if (expectedTitle) {
-        racePromises.push(
-          expect(this.page).toHaveTitle(expectedTitle, { timeout: 15000 }),
-        );
+    let clientAuthError = null;
+    let checkInterval = null;
+    const errorHandler = (msg) => {
+      const text = msg.text();
+      if (
+        text.includes("Firebaseでのログイン中にエラーが発生しました") ||
+        text.includes("auth/network-request-failed")
+      ) {
+        clientAuthError = text;
       }
-      await Promise.race(racePromises);
+    };
+    this.page.on("console", errorHandler);
+
+    try {
+      const waitAuth = Promise.all([
+        expect(this.page).not.toHaveURL(new RegExp(loginData.url), {
+          timeout: 8000,
+        }),
+        expectedTitle
+          ? expect(this.page).toHaveTitle(expectedTitle, { timeout: 8000 })
+          : Promise.resolve(),
+      ]);
+
+      const abortOnClientError = new Promise((_, reject) => {
+        checkInterval = setInterval(() => {
+          if (clientAuthError) {
+            clearInterval(checkInterval);
+            reject(
+              new Error(`[CLIENT FIREBASE AUTH FAILED]: ${clientAuthError}`),
+            );
+          }
+        }, 150);
+      });
+
+      await Promise.race([waitAuth, abortOnClientError]);
     } catch (e) {
-      const toastLocators = this.page.locator(
-        '[data-sonner-toast], [data-title], [data-description], [role="alert"], [role="status"], section[aria-label*="Notifications"] *',
-      );
-      const texts = await toastLocators.allInnerTexts().catch(() => []);
+      const texts = await this.toastNotifications.allInnerTexts().catch(() => []);
       const uniqueTexts = [
-        ...new Set(texts.map((t) => t.trim()).filter(Boolean)),
+        ...new Set(texts.map((t) => (t || "").trim()).filter(Boolean)),
       ];
       console.error("\n[LOGIN FAILED - URL]:", this.page.url());
       console.error("[LOGIN FAILED - TOASTS]:", uniqueTexts, "\n");
       throw e;
+    } finally {
+      if (checkInterval) clearInterval(checkInterval);
+      this.page.off("console", errorHandler);
     }
   }
 }

@@ -1,8 +1,6 @@
 import { test, expect } from "../../src/fixtures/baseTest.js";
-import { LoginPage } from "../../src/pages/LoginPage.js";
 import { GachaPage } from "../../src/pages/GachaPage.js";
 import { GachaAPI } from "../../src/api/GachaAPI.js";
-import { loginData } from "../../src/test-data/loginData.js";
 import { gachaData } from "../../src/test-data/gachaData.js";
 import { apiGachaData } from "../../src/test-data/apiGachaData.js";
 import { METHODS, HTTP_STATUS_CODE } from "../../src/utils/constants.js";
@@ -134,8 +132,7 @@ test.describe.serial("E2E Gacha Management", () => {
   test("TC04: Lọc Status đồng bộ (UI vs API)", async () => {
     await ensureGachaPage();
 
-    const statusDropdown = sharedPage.getByRole("combobox").first();
-    await statusDropdown.click();
+    await gachaPage.statusFilterDropdown.click();
     await sharedPage
       .getByText(gachaData.filterOptions.status[1], { exact: true })
       .last()

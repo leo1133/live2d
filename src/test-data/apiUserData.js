@@ -17,6 +17,7 @@ export const ERROR_MESSAGES = {
 };
 
 export const userData = {
+  csvPath: "src/test-data/csv/getListUser.csv",
   defaultParams: {
     page: 1,
     items_per_page: 10,

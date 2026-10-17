@@ -16,6 +16,7 @@ export const ERROR_MESSAGES = {
 };
 
 export const apiGachaData = {
+  csvPath: "src/test-data/csv/getListGacha.csv",
   defaultParams: {
     page: 1,
     items_per_page: 10,

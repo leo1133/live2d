@@ -1,5 +1,6 @@
 import { expect } from "@playwright/test";
 import { userData } from "../test-data/userData.js";
+import { ENDPOINTS } from "../config/endpoint.js";
 
 export class UserPage {
   /**
@@ -37,12 +38,14 @@ export class UserPage {
     this.searchInput = page
       .getByPlaceholder(userData.labels.searchInputPlaceholder)
       .first();
-    this.statusFilterDropdown = page.locator('button[role="combobox"]').nth(0);
+    this.statusFilterDropdown = page
+      .locator(userData.selectors.combobox)
+      .nth(0);
     this.affiliationFilterDropdown = page
-      .locator('button[role="combobox"]')
+      .locator(userData.selectors.combobox)
       .nth(1);
     this.liverTypeFilterDropdown = page
-      .locator('button[role="combobox"]')
+      .locator(userData.selectors.combobox)
       .nth(2);
 
     this.searchButton = page.getByRole("button", {
@@ -70,7 +73,7 @@ export class UserPage {
       name: userData.pagination.lastPage,
     });
     this.paginationSummary = page.locator(
-      `p:has-text("${userData.pagination.summaryText}")`,
+      userData.selectors.paginationSummary,
     );
   }
 
@@ -142,7 +145,7 @@ export class UserPage {
     if (isSearchEnabled) {
       await Promise.all([
         this.page
-          .waitForResponse((r) => r.url().includes("/api/v1/user/"), {
+          .waitForResponse((r) => r.url().includes(ENDPOINTS.USER.GET_LIST), {
             timeout: 10000,
           })
           .catch(() => null),
@@ -157,7 +160,7 @@ export class UserPage {
   async clearFilters() {
     try {
       await this.page
-        .getByText("読み込み中")
+        .getByText(userData.labels.loadingMessage)
         .waitFor({ state: "detached", timeout: 3000 })
         .catch(() => {});
 
@@ -172,7 +175,7 @@ export class UserPage {
 
       let requestPromise = null;
       const onRequest = (req) => {
-        if (req.url().includes("/api/v1/user/")) {
+        if (req.url().includes(ENDPOINTS.USER.GET_LIST)) {
           requestPromise = req.response();
         }
       };
