@@ -1,5 +1,7 @@
 import { expect } from "@playwright/test";
 import { loginData } from "../test-data/loginData.js";
+import { ENDPOINTS } from "../config/endpoint.js";
+import { HTTP_STATUS_CODE } from "../utils/constants.js";
 
 export class LoginPage {
   /**
@@ -30,28 +32,24 @@ export class LoginPage {
     try {
       await this.page.goto(loginData.url, { waitUntil: "domcontentloaded" });
     } catch {
-      await this.page.waitForTimeout(1000);
+      await this.page.waitForTimeout(loginData.timeouts.retryDelay);
       await this.page.goto(loginData.url, { waitUntil: "domcontentloaded" });
     }
     await this.accountInput.waitFor({ state: "visible" });
     await this.loginButton.waitFor({ state: "visible" });
-
-    // Wait for version check or initial hydration request
-    await this.page
-      .waitForResponse(
-        (resp) => resp.url().includes("/api/v1/common/version"),
-        { timeout: 3500 },
-      )
-      .catch(() => null);
-
-    // Ensure Next.js client component hydration has completed before interaction
+    // Đảm bảo Next.js React hydration hoàn tất và gắn xong event listener
     await this.page
       .waitForFunction(
         () => {
           const input = document.querySelector("input");
-          return (
+          const btn =
+            document.querySelector('button[type="submit"]') ||
+            document.querySelector("button");
+          return Boolean(
             input &&
-            Object.keys(input).some((k) => k.startsWith("__react"))
+              Object.keys(input).some((k) => k.startsWith("__reactFiber")) &&
+              btn &&
+              Object.keys(btn).some((k) => k.startsWith("__reactFiber")),
           );
         },
         { timeout: 7000 },
@@ -68,7 +66,7 @@ export class LoginPage {
       await this.accountInput.fill(account);
       if (account) {
         await expect(this.accountInput)
-          .toHaveValue(account, { timeout: 3000 })
+          .toHaveValue(account, { timeout: loginData.timeouts.inputFill })
           .catch(async () => {
             await this.accountInput.click();
             await this.accountInput.fill(account);
@@ -80,7 +78,7 @@ export class LoginPage {
       await this.passwordInput.fill(password);
       if (password) {
         await expect(this.passwordInput)
-          .toHaveValue(password, { timeout: 3000 })
+          .toHaveValue(password, { timeout: loginData.timeouts.inputFill })
           .catch(async () => {
             await this.passwordInput.click();
             await this.passwordInput.fill(password);
@@ -98,17 +96,29 @@ export class LoginPage {
       await this.passwordInput.fill(password);
     }
 
-    const loginResponsePromise = this.page
-      .waitForResponse((resp) => resp.url().includes("/api/v1/auth/login/"), {
-        timeout: 15000,
-      })
-      .catch(() => null);
+    let loginResponse = null;
+    try {
+      const loginRespPromise = this.page.waitForResponse(
+        (resp) => resp.url().includes(ENDPOINTS.AUTH.LOGIN),
+        { timeout: loginData.timeouts.loginResponse },
+      );
+      await this.loginButton.click();
+      loginResponse = await loginRespPromise;
+    } catch {
+      // Nếu click đầu tiên bị trôi do React chưa hydrate xong onSubmit, click lại lần 2
+      try {
+        const retryRespPromise = this.page.waitForResponse(
+          (resp) => resp.url().includes(ENDPOINTS.AUTH.LOGIN),
+          { timeout: loginData.timeouts.loginResponseRetry },
+        );
+        await this.loginButton.click();
+        loginResponse = await retryRespPromise;
+      } catch {}
+    }
 
-    await this.loginButton.click();
-    const loginResponse = await loginResponsePromise;
     if (loginResponse) {
       const status = loginResponse.status();
-      if (status !== 200) {
+      if (status !== HTTP_STATUS_CODE.OK) {
         const respText = await loginResponse.text().catch(() => "");
         console.error(
           `\n[LOGIN API ERROR] Status: ${status}, Body: ${respText}\n`,
@@ -120,21 +130,21 @@ export class LoginPage {
   async verifyLoginSuccess(expectedTitle) {
     try {
       const racePromises = [
-        this.page.waitForURL((url) => !url.pathname.includes("/sign-in"), {
-          timeout: 15000,
+        this.page.waitForURL((url) => !url.pathname.includes(loginData.url), {
+          timeout: loginData.timeouts.redirect,
           waitUntil: "domcontentloaded",
         }),
       ];
       if (expectedTitle) {
         racePromises.push(
-          expect(this.page).toHaveTitle(expectedTitle, { timeout: 15000 }),
+          expect(this.page).toHaveTitle(expectedTitle, {
+            timeout: loginData.timeouts.redirect,
+          }),
         );
       }
       await Promise.race(racePromises);
     } catch (e) {
-      const toastLocators = this.page.locator(
-        '[data-sonner-toast], [data-title], [data-description], [role="alert"], [role="status"], section[aria-label*="Notifications"] *',
-      );
+      const toastLocators = this.page.locator(loginData.selectors.toast);
       const texts = await toastLocators.allInnerTexts().catch(() => []);
       const uniqueTexts = [
         ...new Set(texts.map((t) => t.trim()).filter(Boolean)),
@@ -145,3 +155,4 @@ export class LoginPage {
     }
   }
 }
+

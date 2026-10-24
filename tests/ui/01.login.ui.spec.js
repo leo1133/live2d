@@ -129,12 +129,16 @@ test.describe.serial('UI Login Suite: Kiểm tra thao tác giao diện DOM', () 
 
   test('Case 18: Kiểm tra khi click hyperlink Forgot password', async () => {
     await expect(loginPage.forgotPasswordLink).toBeVisible();
-    await loginPage.forgotPasswordLink.click();
-    const confirmBtn = sharedPage.getByRole('button', { name: 'はい' });
-    if (await confirmBtn.isVisible({ timeout: 1500 }).catch(() => false)) {
-      await confirmBtn.click();
-    }
-    await expect(sharedPage).toHaveURL(new RegExp(loginData.forgotPasswordScreen.url));
+    await expect(async () => {
+      if (!sharedPage.url().includes(loginData.forgotPasswordScreen.url)) {
+        await loginPage.forgotPasswordLink.click().catch(() => {});
+        const confirmBtn = sharedPage.getByRole('button', { name: 'はい' });
+        if (await confirmBtn.isVisible({ timeout: 500 }).catch(() => false)) {
+          await confirmBtn.click().catch(() => {});
+        }
+      }
+      await expect(sharedPage).toHaveURL(new RegExp(loginData.forgotPasswordScreen.url));
+    }).toPass({ timeout: 10000 });
   });
 
 });

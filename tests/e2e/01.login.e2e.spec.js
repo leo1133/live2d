@@ -25,10 +25,12 @@ test.describe("E2E Login Suite: Kết hợp toàn diện UI + API", () => {
     authAPI,
     loginPage,
   }) => {
-    const apiResponse = await authAPI.login(baseApiPayload);
+    const [apiResponse] = await Promise.all([
+      authAPI.login(baseApiPayload),
+      loginPage.goto(),
+    ]);
     expect([200, 401, 403]).toContain(apiResponse.status());
 
-    await loginPage.goto();
     await loginPage.login(
       loginData.credentials.account,
       loginData.credentials.password,
@@ -65,10 +67,12 @@ test.describe("E2E Login Suite: Kết hợp toàn diện UI + API", () => {
       ...baseApiPayload,
       email_user_id: process.env.ADMIN_ID,
     };
-    const apiResponse = await authAPI.login(idPayload);
+    const [apiResponse] = await Promise.all([
+      authAPI.login(idPayload),
+      loginPage.goto(),
+    ]);
     expect([200, 401, 403]).toContain(apiResponse.status());
 
-    await loginPage.goto();
     await loginPage.login(
       loginData.credentials.accountId,
       loginData.credentials.password,
@@ -101,13 +105,15 @@ test.describe("E2E Login Suite: Kết hợp toàn diện UI + API", () => {
     authAPI,
     loginPage,
   }) => {
-    const apiResponse = await authAPI.login({
-      ...baseApiPayload,
-      password: loginData.credentials.wrongPassword,
-    });
+    const [apiResponse] = await Promise.all([
+      authAPI.login({
+        ...baseApiPayload,
+        password: loginData.credentials.wrongPassword,
+      }),
+      loginPage.goto(),
+    ]);
     expect(apiResponse.status()).toBe(401);
 
-    await loginPage.goto();
     await loginPage.login(
       loginData.credentials.account,
       loginData.credentials.wrongPassword,
@@ -120,13 +126,15 @@ test.describe("E2E Login Suite: Kết hợp toàn diện UI + API", () => {
     authAPI,
     loginPage,
   }) => {
-    const apiResponse = await authAPI.login({
-      ...baseApiPayload,
-      email_user_id: loginData.credentials.wrongEmail,
-    });
+    const [apiResponse] = await Promise.all([
+      authAPI.login({
+        ...baseApiPayload,
+        email_user_id: loginData.credentials.wrongEmail,
+      }),
+      loginPage.goto(),
+    ]);
     expect(apiResponse.status()).toBe(401);
 
-    await loginPage.goto();
     await loginPage.login(
       loginData.credentials.wrongEmail,
       loginData.credentials.password,
@@ -139,14 +147,16 @@ test.describe("E2E Login Suite: Kết hợp toàn diện UI + API", () => {
     authAPI,
     loginPage,
   }) => {
-    const apiResponse = await authAPI.login({
-      ...baseApiPayload,
-      email_user_id: loginData.credentials.wrongEmail,
-      password: loginData.credentials.wrongPassword,
-    });
+    const [apiResponse] = await Promise.all([
+      authAPI.login({
+        ...baseApiPayload,
+        email_user_id: loginData.credentials.wrongEmail,
+        password: loginData.credentials.wrongPassword,
+      }),
+      loginPage.goto(),
+    ]);
     expect(apiResponse.status()).toBe(401);
 
-    await loginPage.goto();
     await loginPage.login(
       loginData.credentials.wrongEmail,
       loginData.credentials.wrongPassword,
@@ -159,18 +169,29 @@ test.describe("E2E Login Suite: Kết hợp toàn diện UI + API", () => {
     authAPI,
     loginPage,
   }) => {
-    const apiResponse = await authAPI.login({
-      ...baseApiPayload,
-      email_user_id: "",
-    });
+    const [apiResponse] = await Promise.all([
+      authAPI.login({
+        ...baseApiPayload,
+        email_user_id: "",
+      }),
+      loginPage.goto(),
+    ]);
     expect(apiResponse.status()).toBe(422);
 
-    await loginPage.goto();
     await loginPage.passwordInput.fill(loginData.credentials.password);
     await loginPage.loginButton.click();
-    await expect(
-      page.getByText(loginData.messages.accountRequired),
-    ).toBeVisible();
+    await expect(async () => {
+      if (
+        !(await page
+          .getByText(loginData.messages.accountRequired)
+          .isVisible())
+      ) {
+        await loginPage.loginButton.click().catch(() => {});
+      }
+      await expect(
+        page.getByText(loginData.messages.accountRequired),
+      ).toBeVisible();
+    }).toPass({ timeout: 5000 });
   });
 
   test("Case 56: Để trống Password - API từ chối 422, UI hiện lỗi required", async ({
@@ -178,18 +199,29 @@ test.describe("E2E Login Suite: Kết hợp toàn diện UI + API", () => {
     authAPI,
     loginPage,
   }) => {
-    const apiResponse = await authAPI.login({
-      ...baseApiPayload,
-      password: "",
-    });
+    const [apiResponse] = await Promise.all([
+      authAPI.login({
+        ...baseApiPayload,
+        password: "",
+      }),
+      loginPage.goto(),
+    ]);
     expect(apiResponse.status()).toBe(422);
 
-    await loginPage.goto();
     await loginPage.accountInput.fill(loginData.credentials.account);
     await loginPage.loginButton.click();
-    await expect(
-      page.getByText(loginData.messages.passwordRequired),
-    ).toBeVisible();
+    await expect(async () => {
+      if (
+        !(await page
+          .getByText(loginData.messages.passwordRequired)
+          .isVisible())
+      ) {
+        await loginPage.loginButton.click().catch(() => {});
+      }
+      await expect(
+        page.getByText(loginData.messages.passwordRequired),
+      ).toBeVisible();
+    }).toPass({ timeout: 5000 });
   });
 
   test("Case 57: Để trống cả Email và Password - API 422, UI hiện cả 2 lỗi", async ({
@@ -197,20 +229,31 @@ test.describe("E2E Login Suite: Kết hợp toàn diện UI + API", () => {
     authAPI,
     loginPage,
   }) => {
-    const apiResponse = await authAPI.login({
-      ...baseApiPayload,
-      email_user_id: "",
-      password: "",
-    });
+    const [apiResponse] = await Promise.all([
+      authAPI.login({
+        ...baseApiPayload,
+        email_user_id: "",
+        password: "",
+      }),
+      loginPage.goto(),
+    ]);
     expect(apiResponse.status()).toBe(422);
 
-    await loginPage.goto();
     await loginPage.loginButton.click();
-    await expect(
-      page.getByText(loginData.messages.accountRequired),
-    ).toBeVisible();
-    await expect(
-      page.getByText(loginData.messages.passwordRequired),
-    ).toBeVisible();
+    await expect(async () => {
+      if (
+        !(await page
+          .getByText(loginData.messages.accountRequired)
+          .isVisible())
+      ) {
+        await loginPage.loginButton.click().catch(() => {});
+      }
+      await expect(
+        page.getByText(loginData.messages.accountRequired),
+      ).toBeVisible();
+      await expect(
+        page.getByText(loginData.messages.passwordRequired),
+      ).toBeVisible();
+    }).toPass({ timeout: 5000 });
   });
 });

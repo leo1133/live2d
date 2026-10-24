@@ -24,6 +24,8 @@ test.describe.serial("UI User Management Suite", () => {
         : undefined,
     });
     sharedPage = await context.newPage();
+    // Chặn tải hình ảnh nặng (avatars/previews) để tăng tốc độ tải và render bảng
+    await sharedPage.route(/\.(png|jpeg|jpg|webp)$/, (route) => route.abort());
     userPage = new UserPage(sharedPage);
     await sharedPage.goto(userData.dashboardUrl, {
       waitUntil: "domcontentloaded",

@@ -41,6 +41,20 @@ export const loginData = {
     msg: "listitem",
   },
 
+  selectors: {
+    toast:
+      '[data-sonner-toast], [data-title], [data-description], [role="alert"], [role="status"], section[aria-label*="Notifications"] *',
+  },
+
+  timeouts: {
+    hydration: 1500,
+    retryDelay: 500,
+    inputFill: 3000,
+    loginResponse: 3500,
+    loginResponseRetry: 10000,
+    redirect: 15000,
+  },
+
   credentials: {
     get account() {
       return process.env.ADMIN_EMAIL || "admin@admin.com";

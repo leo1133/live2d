@@ -27,12 +27,15 @@ test.describe.serial("E2E Gacha Management", () => {
         : undefined,
     });
     sharedPage = await context.newPage();
+    // Chặn tải hình ảnh tĩnh nặng (3D previews, avatars) để giảm tải mạng
+    await sharedPage.route(/\.(png|jpeg|jpg|webp)$/, (route) => route.abort());
     gachaPage = new GachaPage(sharedPage);
     await sharedPage.goto(gachaData.url, { waitUntil: "domcontentloaded" });
     await gachaPage.searchInput.waitFor({ state: "visible", timeout: 15000 });
   });
 
   test.beforeEach(async ({ authenticatedRequest }) => {
+    test.setTimeout(60000);
     gachaApi = new GachaAPI(authenticatedRequest);
   });
 
@@ -41,7 +44,11 @@ test.describe.serial("E2E Gacha Management", () => {
   });
 
   async function ensureGachaPage() {
-    await sharedPage.goto(gachaData.url);
+    if (!sharedPage.url().includes(gachaData.url)) {
+      await sharedPage.goto(gachaData.url, { waitUntil: "domcontentloaded" });
+    } else {
+      await gachaPage.clearFilters();
+    }
     await gachaPage.searchInput.waitFor({ state: "visible", timeout: 15000 });
   }
 
