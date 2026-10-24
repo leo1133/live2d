@@ -26,6 +26,9 @@ export class LoginPage {
     });
 
     this.toastErrorMsg = page.getByText(loginData.messages.invalidCredentials);
+    this.toastNotifications = page.locator(
+      loginData.selectors.toastNotifications,
+    );
   }
 
   async goto() {
@@ -37,6 +40,7 @@ export class LoginPage {
     }
     await this.accountInput.waitFor({ state: "visible" });
     await this.loginButton.waitFor({ state: "visible" });
+
     // Đảm bảo Next.js React hydration hoàn tất và gắn xong event listener
     await this.page
       .waitForFunction(
@@ -58,11 +62,7 @@ export class LoginPage {
   }
 
   async login(account, password) {
-    await this.accountInput.waitFor({ state: "visible" });
-    await this.loginButton.waitFor({ state: "visible" });
-
     if (account !== undefined) {
-      await this.accountInput.click();
       await this.accountInput.fill(account);
       if (account) {
         await expect(this.accountInput)
@@ -74,7 +74,6 @@ export class LoginPage {
       }
     }
     if (password !== undefined) {
-      await this.passwordInput.click();
       await this.passwordInput.fill(password);
       if (password) {
         await expect(this.passwordInput)
@@ -86,13 +85,11 @@ export class LoginPage {
       }
     }
 
-    // Double-check inputs are still filled before submitting (guard against delayed React hydration reset)
+    // Guard: React hydration in Next.js can reset inputs if mounting coincided with fill
     if (account && (await this.accountInput.inputValue()) !== account) {
-      await this.accountInput.click();
       await this.accountInput.fill(account);
     }
     if (password && (await this.passwordInput.inputValue()) !== password) {
-      await this.passwordInput.click();
       await this.passwordInput.fill(password);
     }
 
@@ -128,31 +125,54 @@ export class LoginPage {
   }
 
   async verifyLoginSuccess(expectedTitle) {
-    try {
-      const racePromises = [
-        this.page.waitForURL((url) => !url.pathname.includes(loginData.url), {
-          timeout: loginData.timeouts.redirect,
-          waitUntil: "domcontentloaded",
-        }),
-      ];
-      if (expectedTitle) {
-        racePromises.push(
-          expect(this.page).toHaveTitle(expectedTitle, {
-            timeout: loginData.timeouts.redirect,
-          }),
-        );
+    let clientAuthError = null;
+    let checkInterval = null;
+    const errorHandler = (msg) => {
+      const text = msg.text();
+      if (
+        text.includes("Firebaseでのログイン中にエラーが発生しました") ||
+        text.includes("auth/network-request-failed")
+      ) {
+        clientAuthError = text;
       }
-      await Promise.race(racePromises);
+    };
+    this.page.on("console", errorHandler);
+
+    try {
+      const waitAuth = Promise.all([
+        expect(this.page).not.toHaveURL(new RegExp(loginData.url), {
+          timeout: loginData.timeouts.redirect,
+        }),
+        expectedTitle
+          ? expect(this.page).toHaveTitle(expectedTitle, {
+              timeout: loginData.timeouts.redirect,
+            })
+          : Promise.resolve(),
+      ]);
+
+      const abortOnClientError = new Promise((_, reject) => {
+        checkInterval = setInterval(() => {
+          if (clientAuthError) {
+            clearInterval(checkInterval);
+            reject(
+              new Error(`[CLIENT FIREBASE AUTH FAILED]: ${clientAuthError}`),
+            );
+          }
+        }, 150);
+      });
+
+      await Promise.race([waitAuth, abortOnClientError]);
     } catch (e) {
-      const toastLocators = this.page.locator(loginData.selectors.toast);
-      const texts = await toastLocators.allInnerTexts().catch(() => []);
+      const texts = await this.toastNotifications.allInnerTexts().catch(() => []);
       const uniqueTexts = [
-        ...new Set(texts.map((t) => t.trim()).filter(Boolean)),
+        ...new Set(texts.map((t) => (t || "").trim()).filter(Boolean)),
       ];
       console.error("\n[LOGIN FAILED - URL]:", this.page.url());
       console.error("[LOGIN FAILED - TOASTS]:", uniqueTexts, "\n");
       throw e;
+    } finally {
+      if (checkInterval) clearInterval(checkInterval);
+      this.page.off("console", errorHandler);
     }
   }
 }
-

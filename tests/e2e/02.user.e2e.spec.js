@@ -1,9 +1,8 @@
 import { test, expect } from "../../src/fixtures/baseTest.js";
-import { loginData } from "../../src/test-data/loginData.js";
-import { LoginPage } from "../../src/pages/LoginPage.js";
 import { UserPage } from "../../src/pages/UserPage.js";
 import { userData } from "../../src/test-data/userData.js";
-import { getUiSessionFile } from "../../src/config/endpoint.js";
+import { ENDPOINTS, getUiSessionFile } from "../../src/config/endpoint.js";
+import { HTTP_STATUS_CODE } from "../../src/utils/constants.js";
 
 test.describe("E2E User List Suite: Kết hợp UI + API", () => {
   let sharedPage;
@@ -39,14 +38,14 @@ test.describe("E2E User List Suite: Kết hợp UI + API", () => {
     expect(match).not.toBeNull();
     const uiTotalCount = parseInt(match[1].replace(/,/g, ""), 10);
 
-    const apiResponse = await authenticatedRequest.get("/api/v1/user/", {
+    const apiResponse = await authenticatedRequest.get(ENDPOINTS.USER.GET_LIST, {
       params: {
         page: 1,
         items_per_page: 10,
       },
     });
 
-    expect(apiResponse.status()).toBe(200);
+    expect(apiResponse.status()).toBe(HTTP_STATUS_CODE.OK);
 
     const body = await apiResponse.json();
     const apiTotalCount = body.total_count;

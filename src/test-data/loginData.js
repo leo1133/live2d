@@ -35,15 +35,18 @@ export const loginData = {
   forgotPasswordScreen: {
     url: "/forgot-password",
     title: "Surreal Dolls - パスワードを忘れた方",
-  },
-
-  showToastMgs: {
-    msg: "listitem",
+    confirmButton: "はい",
   },
 
   selectors: {
     toast:
       '[data-sonner-toast], [data-title], [data-description], [role="alert"], [role="status"], section[aria-label*="Notifications"] *',
+    toastNotifications:
+      '[data-sonner-toast], [data-title], [data-description], [role="alert"], [role="status"], section[aria-label*="Notifications"] *',
+  },
+
+  showToastMgs: {
+    msg: "listitem",
   },
 
   timeouts: {

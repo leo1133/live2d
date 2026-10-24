@@ -124,7 +124,7 @@ test.describe.serial("UI User Management Suite", () => {
 
     test(`TC${tcIndex++} - Pulldown: Chọn giá trị dẫn đến không có dữ liệu`, async () => {
       await userPage.searchUsers({
-        usernameOrId: "NOT_FOUND_9999",
+        usernameOrId: userData.testKeywords.notFoundPulldown,
         statusOption: userData.filterOptions.status[3],
       });
       const noDataCell = sharedPage

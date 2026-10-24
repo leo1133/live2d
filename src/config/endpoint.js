@@ -40,5 +40,8 @@ export const ENDPOINTS = {
   },
   GACHA: {
     GET_LIST: "/api/v1/model-gacha/",
-  }
+  },
+  COMMON: {
+    VERSION: "/api/v1/common/version",
+  },
 };

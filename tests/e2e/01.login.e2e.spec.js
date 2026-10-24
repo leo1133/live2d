@@ -1,5 +1,6 @@
 import { test, expect } from "../../src/fixtures/baseTest.js";
 import { loginData } from "../../src/test-data/loginData.js";
+import { HTTP_STATUS_CODE } from "../../src/utils/constants.js";
 
 // Ensure login E2E suite starts with a clean unauthenticated browser
 test.use({ storageState: { cookies: [], origins: [] } });
@@ -29,14 +30,18 @@ test.describe("E2E Login Suite: Kết hợp toàn diện UI + API", () => {
       authAPI.login(baseApiPayload),
       loginPage.goto(),
     ]);
-    expect([200, 401, 403]).toContain(apiResponse.status());
+    expect([
+      HTTP_STATUS_CODE.OK,
+      HTTP_STATUS_CODE.UNAUTHORIZED,
+      HTTP_STATUS_CODE.FORBIDDEN,
+    ]).toContain(apiResponse.status());
 
     await loginPage.login(
       loginData.credentials.account,
       loginData.credentials.password,
     );
 
-    if (apiResponse.status() === 200) {
+    if (apiResponse.status() === HTTP_STATUS_CODE.OK) {
       try {
         await loginPage.verifyLoginSuccess(
           loginData.credentials.textLoginSuccess,
@@ -63,6 +68,9 @@ test.describe("E2E Login Suite: Kết hợp toàn diện UI + API", () => {
     authAPI,
     loginPage,
   }) => {
+    // 1s cooldown to prevent Firebase token exchange rate-limiting on same account UID
+    await page.waitForTimeout(1000);
+
     const idPayload = {
       ...baseApiPayload,
       email_user_id: process.env.ADMIN_ID,
@@ -71,14 +79,18 @@ test.describe("E2E Login Suite: Kết hợp toàn diện UI + API", () => {
       authAPI.login(idPayload),
       loginPage.goto(),
     ]);
-    expect([200, 401, 403]).toContain(apiResponse.status());
+    expect([
+      HTTP_STATUS_CODE.OK,
+      HTTP_STATUS_CODE.UNAUTHORIZED,
+      HTTP_STATUS_CODE.FORBIDDEN,
+    ]).toContain(apiResponse.status());
 
     await loginPage.login(
       loginData.credentials.accountId,
       loginData.credentials.password,
     );
 
-    if (apiResponse.status() === 200) {
+    if (apiResponse.status() === HTTP_STATUS_CODE.OK) {
       try {
         await loginPage.verifyLoginSuccess(
           loginData.credentials.textLoginSuccess,
@@ -112,7 +124,7 @@ test.describe("E2E Login Suite: Kết hợp toàn diện UI + API", () => {
       }),
       loginPage.goto(),
     ]);
-    expect(apiResponse.status()).toBe(401);
+    expect(apiResponse.status()).toBe(HTTP_STATUS_CODE.UNAUTHORIZED);
 
     await loginPage.login(
       loginData.credentials.account,
@@ -133,7 +145,7 @@ test.describe("E2E Login Suite: Kết hợp toàn diện UI + API", () => {
       }),
       loginPage.goto(),
     ]);
-    expect(apiResponse.status()).toBe(401);
+    expect(apiResponse.status()).toBe(HTTP_STATUS_CODE.UNAUTHORIZED);
 
     await loginPage.login(
       loginData.credentials.wrongEmail,
@@ -155,7 +167,7 @@ test.describe("E2E Login Suite: Kết hợp toàn diện UI + API", () => {
       }),
       loginPage.goto(),
     ]);
-    expect(apiResponse.status()).toBe(401);
+    expect(apiResponse.status()).toBe(HTTP_STATUS_CODE.UNAUTHORIZED);
 
     await loginPage.login(
       loginData.credentials.wrongEmail,
@@ -176,7 +188,7 @@ test.describe("E2E Login Suite: Kết hợp toàn diện UI + API", () => {
       }),
       loginPage.goto(),
     ]);
-    expect(apiResponse.status()).toBe(422);
+    expect(apiResponse.status()).toBe(HTTP_STATUS_CODE.UNPROCESSABLE_ENTITY);
 
     await loginPage.passwordInput.fill(loginData.credentials.password);
     await loginPage.loginButton.click();
@@ -206,7 +218,7 @@ test.describe("E2E Login Suite: Kết hợp toàn diện UI + API", () => {
       }),
       loginPage.goto(),
     ]);
-    expect(apiResponse.status()).toBe(422);
+    expect(apiResponse.status()).toBe(HTTP_STATUS_CODE.UNPROCESSABLE_ENTITY);
 
     await loginPage.accountInput.fill(loginData.credentials.account);
     await loginPage.loginButton.click();
@@ -237,7 +249,7 @@ test.describe("E2E Login Suite: Kết hợp toàn diện UI + API", () => {
       }),
       loginPage.goto(),
     ]);
-    expect(apiResponse.status()).toBe(422);
+    expect(apiResponse.status()).toBe(HTTP_STATUS_CODE.UNPROCESSABLE_ENTITY);
 
     await loginPage.loginButton.click();
     await expect(async () => {

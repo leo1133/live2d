@@ -5,7 +5,7 @@ import { loadGachaListCsvCases } from "../../src/utils/csvHelper.js";
 import { METHODS } from "../../src/utils/constants.js";
 import { generateOtherMethodNotChoose } from "../../src/utils/helpers.js";
 
-const csvTestCases = loadGachaListCsvCases("src/test-data/csv/getListGacha.csv");
+const csvTestCases = loadGachaListCsvCases(apiGachaData.csvPath);
 
 test.describe("API Gacha List", () => {
   // =========================================================================
