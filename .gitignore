@@ -16,3 +16,6 @@ tests/auth/*.json
 # OS artifacts
 .DS_Store
 Thumbs.db
+
+# Documentation / Scratch notes
+TEST_CASES_ANALYSIS.md

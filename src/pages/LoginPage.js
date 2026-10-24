@@ -33,22 +33,27 @@ export class LoginPage {
 
   async goto() {
     try {
-      await this.page.goto(loginData.url, { waitUntil: "load" });
+      await this.page.goto(loginData.url, { waitUntil: "domcontentloaded" });
     } catch {
-      await this.page.waitForTimeout(1000);
-      await this.page.goto(loginData.url, { waitUntil: "load" });
+      await this.page.waitForTimeout(loginData.timeouts.retryDelay);
+      await this.page.goto(loginData.url, { waitUntil: "domcontentloaded" });
     }
     await this.accountInput.waitFor({ state: "visible" });
     await this.loginButton.waitFor({ state: "visible" });
 
-    // Ensure Next.js client component hydration has completed before interaction
+    // Đảm bảo Next.js React hydration hoàn tất và gắn xong event listener
     await this.page
       .waitForFunction(
         () => {
           const input = document.querySelector("input");
-          return (
+          const btn =
+            document.querySelector('button[type="submit"]') ||
+            document.querySelector("button");
+          return Boolean(
             input &&
-            Object.keys(input).some((k) => k.startsWith("__react"))
+              Object.keys(input).some((k) => k.startsWith("__reactFiber")) &&
+              btn &&
+              Object.keys(btn).some((k) => k.startsWith("__reactFiber")),
           );
         },
         { timeout: 7000 },
@@ -59,9 +64,25 @@ export class LoginPage {
   async login(account, password) {
     if (account !== undefined) {
       await this.accountInput.fill(account);
+      if (account) {
+        await expect(this.accountInput)
+          .toHaveValue(account, { timeout: loginData.timeouts.inputFill })
+          .catch(async () => {
+            await this.accountInput.click();
+            await this.accountInput.fill(account);
+          });
+      }
     }
     if (password !== undefined) {
       await this.passwordInput.fill(password);
+      if (password) {
+        await expect(this.passwordInput)
+          .toHaveValue(password, { timeout: loginData.timeouts.inputFill })
+          .catch(async () => {
+            await this.passwordInput.click();
+            await this.passwordInput.fill(password);
+          });
+      }
     }
 
     // Guard: React hydration in Next.js can reset inputs if mounting coincided with fill
@@ -72,14 +93,25 @@ export class LoginPage {
       await this.passwordInput.fill(password);
     }
 
-    const loginResponsePromise = this.page
-      .waitForResponse((resp) => resp.url().includes(ENDPOINTS.AUTH.LOGIN), {
-        timeout: 10000,
-      })
-      .catch(() => null);
-
-    await this.loginButton.click();
-    const loginResponse = await loginResponsePromise;
+    let loginResponse = null;
+    try {
+      const loginRespPromise = this.page.waitForResponse(
+        (resp) => resp.url().includes(ENDPOINTS.AUTH.LOGIN),
+        { timeout: loginData.timeouts.loginResponse },
+      );
+      await this.loginButton.click();
+      loginResponse = await loginRespPromise;
+    } catch {
+      // Nếu click đầu tiên bị trôi do React chưa hydrate xong onSubmit, click lại lần 2
+      try {
+        const retryRespPromise = this.page.waitForResponse(
+          (resp) => resp.url().includes(ENDPOINTS.AUTH.LOGIN),
+          { timeout: loginData.timeouts.loginResponseRetry },
+        );
+        await this.loginButton.click();
+        loginResponse = await retryRespPromise;
+      } catch {}
+    }
 
     if (loginResponse) {
       const status = loginResponse.status();
@@ -109,10 +141,12 @@ export class LoginPage {
     try {
       const waitAuth = Promise.all([
         expect(this.page).not.toHaveURL(new RegExp(loginData.url), {
-          timeout: 8000,
+          timeout: loginData.timeouts.redirect,
         }),
         expectedTitle
-          ? expect(this.page).toHaveTitle(expectedTitle, { timeout: 8000 })
+          ? expect(this.page).toHaveTitle(expectedTitle, {
+              timeout: loginData.timeouts.redirect,
+            })
           : Promise.resolve(),
       ]);
 

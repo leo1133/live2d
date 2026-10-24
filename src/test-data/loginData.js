@@ -39,12 +39,23 @@ export const loginData = {
   },
 
   selectors: {
+    toast:
+      '[data-sonner-toast], [data-title], [data-description], [role="alert"], [role="status"], section[aria-label*="Notifications"] *',
     toastNotifications:
       '[data-sonner-toast], [data-title], [data-description], [role="alert"], [role="status"], section[aria-label*="Notifications"] *',
   },
 
   showToastMgs: {
     msg: "listitem",
+  },
+
+  timeouts: {
+    hydration: 1500,
+    retryDelay: 500,
+    inputFill: 3000,
+    loginResponse: 3500,
+    loginResponseRetry: 10000,
+    redirect: 15000,
   },
 
   credentials: {

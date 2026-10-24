@@ -25,6 +25,8 @@ test.describe.serial("UI Gacha Management", () => {
         : undefined,
     });
     sharedPage = await context.newPage();
+    // Chặn tải hình ảnh nặng (3D previews, avatars) để tăng tốc độ tải và render bảng
+    await sharedPage.route(/\.(png|jpeg|jpg|webp)$/, (route) => route.abort());
     gachaPage = new GachaPage(sharedPage);
     await sharedPage.goto(gachaData.dashboardUrl, {
       waitUntil: "domcontentloaded",

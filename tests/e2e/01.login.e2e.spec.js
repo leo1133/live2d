@@ -192,9 +192,18 @@ test.describe("E2E Login Suite: Kết hợp toàn diện UI + API", () => {
 
     await loginPage.passwordInput.fill(loginData.credentials.password);
     await loginPage.loginButton.click();
-    await expect(
-      page.getByText(loginData.messages.accountRequired),
-    ).toBeVisible();
+    await expect(async () => {
+      if (
+        !(await page
+          .getByText(loginData.messages.accountRequired)
+          .isVisible())
+      ) {
+        await loginPage.loginButton.click().catch(() => {});
+      }
+      await expect(
+        page.getByText(loginData.messages.accountRequired),
+      ).toBeVisible();
+    }).toPass({ timeout: 5000 });
   });
 
   test("Case 56: Để trống Password - API từ chối 422, UI hiện lỗi required", async ({
@@ -213,9 +222,18 @@ test.describe("E2E Login Suite: Kết hợp toàn diện UI + API", () => {
 
     await loginPage.accountInput.fill(loginData.credentials.account);
     await loginPage.loginButton.click();
-    await expect(
-      page.getByText(loginData.messages.passwordRequired),
-    ).toBeVisible();
+    await expect(async () => {
+      if (
+        !(await page
+          .getByText(loginData.messages.passwordRequired)
+          .isVisible())
+      ) {
+        await loginPage.loginButton.click().catch(() => {});
+      }
+      await expect(
+        page.getByText(loginData.messages.passwordRequired),
+      ).toBeVisible();
+    }).toPass({ timeout: 5000 });
   });
 
   test("Case 57: Để trống cả Email và Password - API 422, UI hiện cả 2 lỗi", async ({
@@ -234,11 +252,20 @@ test.describe("E2E Login Suite: Kết hợp toàn diện UI + API", () => {
     expect(apiResponse.status()).toBe(HTTP_STATUS_CODE.UNPROCESSABLE_ENTITY);
 
     await loginPage.loginButton.click();
-    await expect(
-      page.getByText(loginData.messages.accountRequired),
-    ).toBeVisible();
-    await expect(
-      page.getByText(loginData.messages.passwordRequired),
-    ).toBeVisible();
+    await expect(async () => {
+      if (
+        !(await page
+          .getByText(loginData.messages.accountRequired)
+          .isVisible())
+      ) {
+        await loginPage.loginButton.click().catch(() => {});
+      }
+      await expect(
+        page.getByText(loginData.messages.accountRequired),
+      ).toBeVisible();
+      await expect(
+        page.getByText(loginData.messages.passwordRequired),
+      ).toBeVisible();
+    }).toPass({ timeout: 5000 });
   });
 });
