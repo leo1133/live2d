@@ -1,0 +1,28 @@
+tcId,testName,page,items_per_page,expectedStatus
+TC001,Default params,1,10,200
+TC002,Không truyền params,,,200
+TC003,Chỉ truyền page = 1,1,,200
+TC004,Chỉ truyền items_per_page = 10,,10,200
+TC005,page = 1 (trang đầu),1,10,200
+TC006,page = 2 (trang sau),2,10,200
+TC007,items_per_page = 1 (min),1,1,200
+TC008,items_per_page = 100 (max),1,100,200
+TC009,page > total pages (99999),99999,10,200
+TC010,Tất cả params rỗng (<empty>),<empty>,<empty>,422
+TC011,page rỗng (<empty>),<empty>,10,422
+TC012,page = null,null,10,422
+TC013,page = 0 (dưới min),0,10,422
+TC014,page = -1 (số âm),-1,10,422
+TC015,page = 1.5 (số thập phân),1.5,10,422
+TC016,page = abc (chuỗi chữ),abc,10,422
+TC017,page = @#$ (ký tự đặc biệt),@#$,10,422
+TC018,page tràn số integer,99999999999999999999,10,422
+TC019,items_per_page rỗng (<empty>),1,<empty>,422
+TC020,items_per_page = null,1,null,422
+TC021,items_per_page = 0 (dưới min),1,0,422
+TC022,items_per_page = -1 (số âm),1,-1,422
+TC023,items_per_page = 1.5 (số thập phân),1,1.5,422
+TC024,items_per_page = abc (chuỗi chữ),1,abc,422
+TC025,items_per_page = @#$ (ký tự đặc biệt),1,@#$,422
+TC026,items_per_page = 101 (> max),1,101,422
+

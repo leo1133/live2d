@@ -41,6 +41,15 @@ export const ENDPOINTS = {
   GACHA: {
     GET_LIST: "/api/v1/model-gacha/",
   },
+  GACHA_LIMITED: {
+    PACKAGE_DETAIL: (modelId) => `/api/v1/model-gacha/${modelId}`,
+    PACKAGE_ITEMS: (packageId) => `/api/v1/model-gacha/model-gacha-items/${packageId}`,
+    UPDATE_PITY: (packageId) => `/api/v1/model-gacha/${packageId}/pity`,
+    UPDATE_IMAGE: (packageId) => `/api/v1/model-gacha/package/${packageId}/image`,
+    ITEM: (itemId) => `/api/v1/model-gacha/items/${itemId}`,
+    CREATE_ITEM: "/api/v1/model-gacha/items",
+    SUB_MODEL_LIST: (packageId) => `/api/v1/model-gacha/package/${packageId}/three-d-sub-model`,
+  },
   COMMON: {
     VERSION: "/api/v1/common/version",
   },
