@@ -108,3 +108,44 @@ export function loadGachaListCsvCases(csvRelativePath) {
     };
   });
 }
+
+/**
+ * Đọc file CSV và trả về mảng dữ liệu testcases cho Limited Gacha Items
+ */
+export function loadGachaLimitedItemsCsvCases(csvRelativePath) {
+  const absolutePath = path.resolve(process.cwd(), csvRelativePath);
+  const fileContent = fs.readFileSync(absolutePath, "utf-8");
+
+  const records = parse(fileContent, {
+    columns: true,
+    skip_empty_lines: true,
+    trim: true,
+  });
+
+  return records.map((row, index) => {
+    const headers = {};
+    const accept = parseCsvQueryValue(row.accept);
+    if (accept !== undefined) headers["Accept"] = accept;
+
+    const rawQueryParams = {
+      page: parseCsvQueryValue(row.page),
+      items_per_page: parseCsvQueryValue(row.items_per_page),
+    };
+
+    const queryParams = {};
+    Object.keys(rawQueryParams).forEach((key) => {
+      if (rawQueryParams[key] !== undefined) {
+        queryParams[key] = rawQueryParams[key];
+      }
+    });
+
+    return {
+      tcId: row.tcId || row.tc_id || `TC_${index + 1}`,
+      testName: row.testName || row.test_name || `Testcase ${index + 1}`,
+      method: (row.method || "GET").toUpperCase(),
+      headers,
+      queryParams,
+      expectedStatus: Number(row.expectedStatus || row.expected_status || 200),
+    };
+  });
+}

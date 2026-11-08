@@ -12,12 +12,19 @@
     "dotenv": "^18.0.4"
   },
   "scripts": {
-    "codegen:dev": "ENV=dev node -e \"import('dotenv').then(({default: d}) => d.config({path: '.env.dev'})).then(() => import('child_process')).then(({execSync}) => execSync(`npx playwright codegen ${process.env.UI_BASE_URL}/sign-in`, {stdio: 'inherit'}))",
+    "codegen": "npm run codegen:dev",
+    "codegen:dev": "ENV=dev node -e 'import(\"dotenv\").then(({default: d}) => d.config({path: \".env.dev\"})).then(() => import(\"child_process\")).then(({execSync}) => execSync(`npx playwright codegen --http-credentials=${process.env.BASIC_AUTH_USER}:${process.env.BASIC_AUTH_PASS} ${process.env.UI_BASE_URL}/sign-in`, {stdio: \"inherit\"}))'",
+    "codegen:stg": "ENV=staging node -e 'import(\"dotenv\").then(({default: d}) => d.config({path: \".env.staging\"})).then(() => import(\"child_process\")).then(({execSync}) => execSync(`npx playwright codegen --http-credentials=${process.env.BASIC_AUTH_USER}:${process.env.BASIC_AUTH_PASS} ${process.env.UI_BASE_URL}/sign-in`, {stdio: \"inherit\"}))'",
     "test": "npx playwright test",
     "test:dev": "ENV=dev npx playwright test",
     "test:stg": "ENV=staging npx playwright test",
     "test:ui:dev": "ENV=dev npx playwright test --ui",
     "test:ui:stg": "ENV=staging npx playwright test --ui",
+    "test:gacha:limited": "ENV=dev npx playwright test tests/ui/04.gacha_limited.ui.spec.js",
+    "test:gacha:limited:ui": "ENV=dev npx playwright test tests/ui/04.gacha_limited.ui.spec.js",
+    "test:gacha:limited:api": "ENV=dev npx playwright test tests/api/04.gacha_limited.api.spec.js",
+    "test:gacha:limited:e2e": "ENV=dev npx playwright test tests/e2e/04.gacha_limited.e2e.spec.js",
+    "test:gacha:limited:all": "ENV=dev npx playwright test tests/**/04.gacha_limited.*.spec.js",
     "report": "npx playwright show-report"
   },
   "keywords": [],

@@ -17,7 +17,12 @@ export class CustomApiClient {
   }
 
   async handleRequest(requestFn) {
-    const response = await requestFn();
+    let response = await requestFn();
+    // Tự động thử lại 1 lần nếu gặp lỗi mạng tạm thời từ gateway dev/staging (502/503/504)
+    if ([502, 503, 504].includes(response.status())) {
+      await new Promise((resolve) => setTimeout(resolve, 800));
+      response = await requestFn();
+    }
     if (this.isAuthRequest && (response.status() === 401 || response.status() === 403)) {
       inMemoryToken = null;
       if (fs.existsSync(authFile)) {
@@ -141,8 +146,10 @@ export const test = base.extend({
     await use(new LoginPage(page));
   },
   
-  authAPI: async ({ request }, use) => {
-    await use(new AuthAPI(request));
+  authAPI: async ({ playwright }, use) => {
+    const standaloneContext = await playwright.request.newContext();
+    await use(new AuthAPI(standaloneContext));
+    await standaloneContext.dispose();
   },
 
   authenticatedRequest: async ({ playwright }, use) => {
