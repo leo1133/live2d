@@ -1,6 +1,6 @@
 import { test as base } from '@playwright/test';
-import { LoginPage } from '../pages/LoginPage.js';
-import { AuthAPI } from '../api/AuthAPI.js';
+import { AA000Page as LoginPage } from '../pages/AA000Page.js';
+import { AA000API as AuthAPI } from '../api/AA000API.js';
 import { ENDPOINTS, getApiBaseUrl, getApiTokenFile } from '../config/endpoint.js';
 import fs from "fs";
 import path from "path";

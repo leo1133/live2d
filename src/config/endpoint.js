@@ -53,4 +53,19 @@ export const ENDPOINTS = {
   COMMON: {
     VERSION: "/api/v1/common/version",
   },
+  AGENCY: {
+    GET_LIST: "/agency/",
+    CREATE: "/agency/create/",
+    DETAIL: (id) => `/agency/${id}/`,
+    UPDATE: (id) => `/agency/${id}/`,
+    DELETE: (id) => `/agency/${id}/`,
+    VERIFY_EMAIL: "/agency/auth/verify-email-change/",
+    LIVER_LIST: (id) => `/agency/list/${id}`,
+    USER_APPROVE: (agencyId, userId) => `/agency/${agencyId}/user/${userId}`,
+    REVENUE: (id) => `/agency/${id}/revenue/`,
+    REWARD_CREATE: (id) => `/agency/${id}/reward/`,
+    REWARD_UPDATE: (agencyId, rewardId) => `/agency/${agencyId}/reward/${rewardId}/`,
+    REWARD_DELETE: (agencyId, rewardId) => `/agency/${agencyId}/reward/${rewardId}/`,
+    STATEMENT_PDF: (agencyId, rewardId) => `/agency/${agencyId}/statement/${rewardId}/pdf`,
+  },
 };

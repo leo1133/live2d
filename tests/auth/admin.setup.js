@@ -1,6 +1,6 @@
 import { test as setup } from "@playwright/test";
-import { LoginPage } from "../../src/pages/LoginPage.js";
-import { loginData } from "../../src/test-data/loginData.js";
+import { AA000Page as LoginPage } from "../../src/pages/AA000Page.js";
+import { aa000Data as loginData } from "../../src/test-data/aa000Data.js";
 import { getUiSessionFile } from "../../src/config/endpoint.js";
 import fs from "fs";
 import path from "path";
