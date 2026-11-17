@@ -6,7 +6,7 @@
 
 export const ad303Data = {
   routes: {
-    revenue: (agencyId = 1) => `/admin/agencies/${agencyId}/revenue`,
+    revenue: (agencyId = 1) => `/agencies/detail/${agencyId}?tab=revenue`,
     buildQuery: (params = {}) => {
       const searchParams = new URLSearchParams();
       Object.entries(params).forEach(([k, v]) => {

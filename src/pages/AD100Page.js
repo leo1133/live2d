@@ -38,10 +38,18 @@ export class AD100Page {
       name: ad100Data.labels.btnClear,
       exact: true,
     });
-    this.createButton = page.getByRole("button", {
-      name: ad100Data.labels.btnCreate,
-      exact: true,
-    });
+    this.createButton = page
+      .getByRole("button", {
+        name: ad100Data.labels.btnCreate,
+        exact: true,
+      })
+      .or(
+        page.getByRole("link", {
+          name: ad100Data.labels.btnCreate,
+          exact: true,
+        })
+      )
+      .or(page.locator(`a:has-text("${ad100Data.labels.btnCreate}")`));
 
     // 3. Static Table & Headers
     this.table = page
@@ -185,10 +193,9 @@ export class AD100Page {
    * Locator động: Lấy nút chuyển trang theo số trang
    */
   getPageNumberButton(pageNumber) {
-    return this.paginationContainer.getByRole("button", {
-      name: String(pageNumber),
-      exact: true,
-    });
+    return this.paginationContainer
+      .locator(`button[aria-label*="${pageNumber}ページ"], button:has-text("${pageNumber}")`)
+      .first();
   }
 
   /**
@@ -222,6 +229,7 @@ export class AD100Page {
       timeout: ad100Data.timeouts.pageLoad,
     });
     await this.waitForLoadingDetached();
+    await this.table.waitFor({ state: "visible", timeout: ad100Data.timeouts.action }).catch(() => {});
   }
 
   /**
@@ -235,6 +243,15 @@ export class AD100Page {
       });
     } catch {
       // Bỏ qua nếu spinner không xuất hiện
+    }
+    try {
+      const skeleton = this.page.locator(ad100Data.selectors.skeleton).first();
+      await skeleton.waitFor({
+        state: "detached",
+        timeout: ad100Data.timeouts.pageLoad,
+      });
+    } catch {
+      // Bỏ qua nếu skeleton không xuất hiện
     }
   }
 
@@ -256,8 +273,18 @@ export class AD100Page {
       if (tagName === "select") {
         await this.statusDropdown.selectOption({ label: statusText });
       } else {
-        await this.statusDropdown.click();
-        await this.page.getByRole("option", { name: statusText }).click();
+        if (statusText === ad100Data.dropdownOptions.status.all || statusText === "全て") {
+          const currentText = await this.statusDropdown.innerText();
+          if (
+            currentText.includes(ad100Data.dropdownOptions.status.active) ||
+            currentText.includes(ad100Data.dropdownOptions.status.inactive)
+          ) {
+            await this.clearButton.click();
+          }
+        } else {
+          await this.statusDropdown.click();
+          await this.page.getByRole("option", { name: statusText }).click();
+        }
       }
     }
   }
@@ -392,14 +419,22 @@ export class AD100Page {
    * Click vào cột ライバー数 (CR 06/11/2025: Điều hướng sang AD302)
    */
   async clickStreamerCount(rowIndex = 0) {
-    await this.getTableCell(rowIndex, "streamerCount").click();
+    await this.waitForLoadingDetached();
+    const streamerCell = this.getTableCell(rowIndex, "streamerCount");
+    const link = streamerCell.locator("a").first();
+    await link.waitFor({ state: "visible", timeout: ad100Data.timeouts.action });
+    await link.click();
   }
 
   /**
    * Click vào dòng Agency hoặc nút Chi tiết (Điều hướng sang AD301)
    */
   async clickRowDetail(rowIndex = 0) {
-    await this.getTableCell(rowIndex, "actions").click();
+    await this.waitForLoadingDetached();
+    const actionCell = this.getTableCell(rowIndex, "actions");
+    const editBtn = actionCell.locator(ad100Data.selectors.btnEdit).first();
+    await editBtn.waitFor({ state: "visible", timeout: ad100Data.timeouts.action });
+    await editBtn.click();
   }
 
   /**

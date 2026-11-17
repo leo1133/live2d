@@ -35,17 +35,19 @@ test.describe("E2E AD100: Triple-Layer Data Consistency (UI <-> API)", () => {
       timeout: ad100Data.timeouts.pageLoad,
     });
 
-    // 3. Đối chiếu số lượng bản ghi hiển thị
-    const uiRowCount = await agencyPage.getRowCount();
+    // 3. Đối chiếu số lượng bản ghi hiển thị (Smart waiting với auto-retry)
+    const apiList = apiData.data || apiData.items || [];
     const expectedCount = Math.min(
-      apiData.items ? apiData.items.length : 0,
+      apiList.length,
       ad100Data.pagination.defaultItemsPerPage
     );
-    expect(uiRowCount).toBe(expectedCount);
+    await expect(agencyPage.tableRows).toHaveCount(expectedCount, {
+      timeout: ad100Data.timeouts.pageLoad,
+    });
 
     // 4. Đối chiếu chi tiết bản ghi đầu tiên nếu có dữ liệu
-    if (expectedCount > 0 && apiData.items.length > 0) {
-      const firstApiItem = apiData.items[0];
+    if (expectedCount > 0 && apiList.length > 0) {
+      const firstApiItem = apiList[0];
       const firstUiRow = await agencyPage.getRowData(0);
 
       // Mã Agency ID hoặc Tên Agency phải xuất hiện trên dòng UI
