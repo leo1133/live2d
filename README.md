@@ -22,6 +22,7 @@ Dự án áp dụng mô hình kiểm thử tự động đa tầng:
 - **E2E Testing**: Kiểm thử luồng tích hợp toàn trình, đối chiếu tính đồng bộ dữ liệu giữa UI, API và Database (PostgreSQL).
 - **Cơ chế tối ưu hóa tự động**:
   - **Auto Auth / Token Cache**: Tự động quản lý JWT token và phiên đăng nhập UI. Bỏ qua bước login form khi session còn hạn (< 100ms).
+  - **Dynamic Data Discovery**: Custom fixture `discovery` tự động bốc ngẫu nhiên Target IDs hợp lệ (User, Agency, Gacha...) từ API phục vụ các bài test Detail/Update mà không cần hardcode ID.
   - **Dynamic Sync**: Đồng bộ 100% bằng sự kiện mạng (`waitForResponse`), loại bỏ hoàn toàn `sleep/waitForTimeout` gây flaky.
   - **DB Auto-Skip**: Tự động bỏ qua các bài test đối chiếu DB nếu môi trường cục bộ chưa bật database, không làm gián đoạn suite test.
 
@@ -77,7 +78,7 @@ live2d/
 │   ├── test-data/                    # Dữ liệu kiểm thử
 │   │   ├── <screenCode>Data.js       # Dữ liệu tĩnh, payload mẫu, selector config
 │   │   └── csv/                      # File CSV phục vụ Data-Driven Testing (nếu có)
-│   └── utils/                        # Thư viện dùng chung: db.helper.js, csvHelper.js, constants.js
+│   └── utils/                        # Thư viện dùng chung: dataDiscovery.js, db.helper.js, csvHelper.js, constants.js
 │
 ├── tests/                            # Kịch bản kiểm thử (Test Suites)
 │   ├── auth/                         # Setup project khởi tạo session đăng nhập ban đầu
@@ -155,7 +156,9 @@ import { test, expect } from '../../src/fixtures/baseTest.js';
 import { XX999Page } from '../../src/pages/XX999Page.js';
 
 test.describe('XX999 - Feature Title', () => {
-  test('TC01 - Verify basic element display', async ({ page }) => {
+  test('TC01 - Verify basic element display', async ({ page, discovery }) => {
+    // Tự động bốc ngẫu nhiên ID/entity từ hệ thống nếu cần test màn hình Detail/Edit
+    // const randomEntity = await discovery.getRandomEntity({ endpoint: '/api/v1/xx999/' });
     const xx999Page = new XX999Page(page);
     await xx999Page.navigate();
     // Viết các assertions tại đây...

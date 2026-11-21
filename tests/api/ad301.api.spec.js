@@ -10,9 +10,14 @@ import { apiAd301Data } from "../../src/test-data/apiAd301Data.js";
 
 test.describe("AD301_Agency Information - Backend API Automation Tests (91 Viewpoints)", () => {
   let agencyApi;
+  let activeAgencyId = apiAd301Data.defaultAgencyId;
 
-  test.beforeEach(async ({ authenticatedRequest }) => {
+  test.beforeEach(async ({ authenticatedRequest, discovery }) => {
     agencyApi = new AD301AgencyAPI(authenticatedRequest);
+    const agency = await discovery.getRandomAgency({ fallbackId: apiAd301Data.defaultAgencyId });
+    if (agency?.id) {
+      activeAgencyId = agency.id;
+    }
   });
 
   // ==========================================
@@ -20,7 +25,7 @@ test.describe("AD301_Agency Information - Backend API Automation Tests (91 Viewp
   // ==========================================
   for (const tc of apiAd301Data.testMatrix) {
     test(`${tc.id} [${tc.vpId}] ${tc.group} - ${tc.title}`, async () => {
-      let targetAgencyId = apiAd301Data.defaultAgencyId;
+      let targetAgencyId = activeAgencyId;
       let headers = {};
       let payload = { ...apiAd301Data.validPatchPayload };
 
