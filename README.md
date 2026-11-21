@@ -15,6 +15,7 @@ Dự án kiểm thử tự động toàn diện (**UI**, **API**, **E2E**) cho h
 7. [Cơ chế Data-Driven Testing (CSV)](#-cơ-chế-data-driven-testing-csv)
 8. [Quản lý Token & Authentication Fixtures](#-quản-lý-token--authentication-fixtures)
 9. [Quy chuẩn & Hướng dẫn mở rộng](#-quy-chuẩn--hướng-dẫn-mở-rộng)
+10. [CI/CD Pipeline (GitHub Actions & Jenkins)](#-cicd-pipeline-github-actions--jenkins)
 
 ---
 
@@ -35,6 +36,9 @@ Dự án áp dụng các mô hình chuẩn trong kiểm thử tự động:
 
 ```text
 live2d/
+├── .github/workflows/
+│   └── playwright.yml            # Pipeline CI/CD tự động trên GitHub Actions
+├── Jenkinsfile                   # Kịch bản Declarative Pipeline trên Jenkins
 ├── .env.dev                      # Biến môi trường cho môi trường Dev
 ├── .env.staging                  # Biến môi trường cho môi trường Staging
 ├── package.json                  # Danh sách dependencies và các scripts thực thi
@@ -372,3 +376,124 @@ Dự án áp dụng cơ chế quản lý Token tự động thông qua [`src/fix
 2. Tạo API client trong `src/api/MyNewAPI.js`.
 3. Tạo file Test Data trong `src/test-data/apiMyNewData.js` kế thừa từ `commonApiData.js`.
 4. Viết kịch bản kiểm thử trong `tests/api/04.myNew.api.spec.js`.
+
+---
+
+## 🚀 CI/CD Pipeline (GitHub Actions & Jenkins)
+
+Dự án hỗ trợ song song hai nền tảng CI/CD tiêu chuẩn công nghiệp: **GitHub Actions** (Cloud-native CI/CD) và **Jenkins** (Self-hosted Automation Server).
+
+### 1. GitHub Actions Pipeline (`.github/workflows/playwright.yml`)
+
+Workflow được tối ưu hóa cho môi trường kiểm thử Playwright với các cơ chế bảo vệ và tăng tốc đặc biệt:
+
+#### A. Các sự kiện kích hoạt (Triggers)
+- **`push`**: Tự động kích hoạt khi có code mới được đẩy hoặc merge vào các nhánh chính (`main`, `master`, `develop`).
+- **`pull_request`**: Tự động chạy khi có PR mở vào các nhánh chính để kiểm tra chất lượng code trước khi cho phép merge.
+- **`schedule` (Nightly Regression)**: Tự động chạy toàn bộ bộ test hồi quy vào lúc **02:00 UTC (09:00 AM giờ VN)** hàng ngày.
+- **`workflow_dispatch` (Chạy thủ công)**: Cho phép QA/Dev kích hoạt theo nhu cầu từ giao diện GitHub mà không cần push code:
+  - Chọn môi trường: `dev` | `staging`.
+  - Chọn phạm vi test: `all` | `ad100` | `api` | `ui` | `e2e` | `smoke-aa000` | `gacha-limited`.
+  - Chọn số workers: `2` (mặc định).
+
+#### B. Các tính năng tối ưu cốt lõi
+1. **Pre-flight Backend Health Check**: Kiểm tra kết nối tới Backend API (`$API_BASE_URL/api/v1/common/version`) trước khi chạy test. Nếu server đang sập hoặc trả về lỗi `HTTP 502/503/504`, workflow sẽ **ngắt ngay lập tức trong 28 giây** thay vì tiếp tục retry vô ích hàng trăm lần làm mất 20+ phút.
+2. **Concurrency Control**: Sử dụng `concurrency: cancel-in-progress: true` để tự động hủy các lượt chạy cũ khi có commit mới được push lên cùng một PR, tiết kiệm tài nguyên runner.
+3. **Fail-Fast (`--max-failures=5`)**: Giới hạn tối đa 5 test case lỗi. Nếu có lỗi hệ thống phát sinh giữa chừng, Playwright dừng lại ngay lập tức để bảo vệ tài nguyên.
+4. **Nhận diện Suite thông minh theo nhánh**: Nếu tên nhánh chứa `ad100` (như `fix/ad100-...`), workflow tự động thu hẹp phạm vi kiểm thử về riêng bộ test AD100 thay vì chạy toàn bộ dự án.
+5. **Caching tối đa**: Cache thư mục `~/.npm` và browser binaries `~/.cache/ms-playwright`, chỉ cài đặt riêng Chromium giúp rút ngắn thời gian chuẩn bị máy ảo từ 7 phút xuống còn ~1 phút.
+6. **Báo cáo trực tuyến GitHub Pages**: Tự động xuất bản Playwright HTML Report lên GitHub Pages tại: `https://leo1133.github.io/live2d/`.
+
+#### C. Quản lý Secrets trên GitHub
+Đã cấu hình đủ 16 Repository Secrets tại `Settings > Secrets and variables > Actions`:
+- `UI_BASE_URL`, `API_BASE_URL`
+- `BASIC_AUTH_USER`, `BASIC_AUTH_PASS`
+- `ADMIN_EMAIL`, `ADMIN_ID`, `ADMIN_PASSWORD`, `LOGIN_TYPE`
+- `DB_HOST`, `DB_PORT`, `DB_NAME`, `DB_USER`, `DB_PASSWORD`
+- `LIMITED_GACHA_MODEL_ID`, `LIMITED_GACHA_PACKAGE_ID`, `LIMITED_GACHA_ITEM_ID`
+
+---
+
+### 2. Jenkins Pipeline (`Jenkinsfile`)
+
+Dự án cung cấp file [Jenkinsfile](Jenkinsfile) cấu hình theo chuẩn **Declarative Pipeline**, tương thích hoàn toàn với các máy chủ Jenkins nội bộ hoặc máy cá nhân (Localhost).
+
+#### A. Kiến trúc Pipeline
+```groovy
+pipeline {
+    agent any
+
+    environment {
+        CI = 'true'
+        ENV = 'dev'
+        PATH = "/usr/local/bin:/opt/homebrew/bin:$PATH"
+    }
+
+    stages {
+        stage('Checkout Source Code') {
+            steps {
+                checkout scm
+            }
+        }
+
+        stage('Check Node Environment') {
+            steps {
+                sh 'node -v'
+                sh 'npm -v'
+            }
+        }
+
+        stage('Prepare Environment') {
+            steps {
+                sh '''
+                if [ ! -f .env.dev ] && [ -f .env.example ]; then
+                    cp .env.example .env.dev
+                fi
+                '''
+            }
+        }
+
+        stage('Install Dependencies') {
+            steps {
+                sh 'npm ci'
+                sh 'npx playwright install --with-deps chromium'
+            }
+        }
+
+        stage('Execute Playwright Tests') {
+            steps {
+                sh 'npx playwright test tests/**/ad100.*.spec.js --max-failures=5'
+            }
+        }
+    }
+
+    post {
+        always {
+            publishHTML(target: [
+                allowMissing: true,
+                alwaysLinkToLastBuild: true,
+                keepAll: true,
+                reportDir: 'playwright-report',
+                reportFiles: 'index.html',
+                reportName: 'Playwright HTML Report'
+            ])
+        }
+    }
+}
+```
+
+#### B. Xem báo cáo HTML trên Jenkins & Xử lý Content Security Policy (CSP)
+Mặc định Jenkins chặn JavaScript nhúng trong HTML Reports do cơ chế CSP, khiến báo cáo Playwright bị hiển thị trắng tinh. Để khắc phục:
+- **Xử lý nhanh qua Script Console**:
+  Truy cập `http://localhost:8080/manage/script`, chạy lệnh Groovy:
+  ```groovy
+  System.setProperty("hudson.model.DirectoryBrowserSupport.CSP", "")
+  ```
+- **Cấu hình vĩnh viễn trên macOS**: Đã nạp cờ `-Dhudson.model.DirectoryBrowserSupport.CSP=` vào file dịch vụ khởi động `sh.brew.jenkins-lts.plist`.
+- **Xem báo cáo trực tiếp**: Truy cập qua link: `http://localhost:8080/job/live2d-pipeline/<build_number>/Playwright_20HTML_20Report/index.html`.
+
+#### C. Tự động kích hoạt khi có code mới (Poll SCM)
+Để Jenkins tự động chạy khi merge code vào GitHub mà không cần bấm thủ công:
+1. Vào Job `live2d-pipeline` > **Configure** > **Build Triggers**.
+2. Tích chọn **Poll SCM** với chu kỳ: `H/5 * * * *` (cứ 5 phút kiểm tra GitHub 1 lần, nếu có commit mới sẽ tự động Build).
+
