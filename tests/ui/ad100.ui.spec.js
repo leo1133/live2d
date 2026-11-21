@@ -70,13 +70,12 @@ test.describe.serial("UI AD100: Agency List / Search (事務所一覧・検索)"
 
     // @tc: [AD100-5] - Check Inbound với params không có data
     test("[AD100-5]: Truy cập query params không tồn tại hiển thị Empty State CMMSG47", async () => {
-      await agencyPage.goto({ q: ad100Data.searchTestData.nonExistentKeyword });
-      const rowCount = await agencyPage.getRowCount();
-      if (rowCount === 0) {
-        await expect(agencyPage.emptyStateText).toBeVisible({
-          timeout: ad100Data.timeouts.modal,
-        });
-      }
+      await agencyPage.goto();
+      await agencyPage.fillSearchKeyword(ad100Data.searchTestData.nonExistentKeyword);
+      await agencyPage.clickSearch();
+      await expect(agencyPage.emptyStateText).toBeVisible({
+        timeout: ad100Data.timeouts.modal,
+      });
     });
 
     // @tc: [AD100-6] - Check Screen Lifecycle F5 Reload
@@ -301,7 +300,7 @@ test.describe.serial("UI AD100: Agency List / Search (事務所一覧・検索)"
       const rowCount = await agencyPage.getRowCount();
       if (rowCount > 0) {
         await agencyPage.clickStreamerCount(0);
-        await expect(sharedPage).toHaveURL(/.*livers|.*302/);
+        await expect(sharedPage).toHaveURL(/.*tab=list-streamer|.*livers|.*302/);
       }
     });
 
@@ -311,7 +310,7 @@ test.describe.serial("UI AD100: Agency List / Search (事務所一覧・検索)"
       const rowCount = await agencyPage.getRowCount();
       if (rowCount > 0) {
         await agencyPage.clickRowDetail(0);
-        await expect(sharedPage).toHaveURL(/\/admin\/agencies\/\d+/);
+        await expect(sharedPage).toHaveURL(/\/agencies\/detail\/\d+/);
       }
     });
 
@@ -397,13 +396,15 @@ test.describe.serial("UI AD100: Agency List / Search (事務所一覧・検索)"
   test.describe("6. Empty State & System Feedback", () => {
     // @tc: [AD100-71] - Empty State CMMSG47
     test("[AD100-71]: Hiển thị chính xác thông điệp CMMSG47: 一致する検索結果はありません。", async () => {
-      await agencyPage.goto({ q: ad100Data.searchTestData.nonExistentKeyword });
-      const count = await agencyPage.getRowCount();
-      if (count === 0) {
-        await expect(agencyPage.emptyStateText).toContainText(
-          ad100Data.labels.emptyState
-        );
-      }
+      await agencyPage.goto();
+      await agencyPage.fillSearchKeyword(ad100Data.searchTestData.nonExistentKeyword);
+      await agencyPage.clickSearch();
+      await expect(agencyPage.emptyStateText).toBeVisible({
+        timeout: ad100Data.timeouts.modal,
+      });
+      await expect(agencyPage.emptyStateText).toContainText(
+        ad100Data.labels.emptyState
+      );
     });
 
     // @tc: [AD100-75] - Responsive Layout

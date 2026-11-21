@@ -11,7 +11,7 @@ export const apiAd100Data = {
 
   // Schema kiểm tra cấu trúc phản hồi thành công (200 OK)
   successSchema: {
-    items: expect.any(Array),
+    data: expect.any(Array),
     total_count: expect.any(Number),
     page: expect.any(Number),
     items_per_page: expect.any(Number),

@@ -7,10 +7,10 @@
 export const ad100Data = {
   // Đường dẫn Route UI & Query Builders động
   routes: {
-    agencyList: "/admin/agencies",
-    agencyCreate: "/admin/agencies/create",
-    agencyDetail: (id) => `/admin/agencies/${id}`,
-    agencyLivers: (id) => `/admin/agencies/${id}/livers`,
+    agencyList: "/agencies",
+    agencyCreate: "/agencies/create",
+    agencyDetail: (id) => `/agencies/detail/${id}?tab=detail`,
+    agencyLivers: (id) => `/agencies/detail/${id}?tab=list-streamer`,
     buildAgencyListQuery: (params = {}) => {
       const query = new URLSearchParams();
       for (const [key, value] of Object.entries(params)) {
@@ -19,7 +19,7 @@ export const ad100Data = {
         }
       }
       const qs = query.toString();
-      return qs ? `/admin/agencies?${qs}` : "/admin/agencies";
+      return qs ? `/agencies?${qs}` : "/agencies";
     },
   },
 
@@ -34,12 +34,14 @@ export const ad100Data = {
     tableHeaders: 'th',
     emptyState: '.empty-state, [data-testid="empty-state"]',
     loadingSpinner: '.loading-spinner, [data-testid="loading-indicator"]',
-    paginationContainer: '.pagination, [aria-label="Pagination"]',
-    prevPageButton: 'button[aria-label="Previous Page"]',
-    nextPageButton: 'button[aria-label="Next Page"]',
-    firstPageButton: 'button[aria-label="First Page"]',
-    lastPageButton: 'button[aria-label="Last Page"]',
+    skeleton: '[data-slot="skeleton"]',
+    paginationContainer: 'nav[data-slot="pagination"], nav[aria-label="pagination" i], .pagination',
+    prevPageButton: 'button[aria-label="前のページへ"], button[aria-label="Previous Page"]',
+    nextPageButton: 'button[aria-label="次のページへ"], button[aria-label="Next Page"]',
+    firstPageButton: 'button[aria-label="最初のページへ"], button[aria-label="First Page"]',
+    lastPageButton: 'button[aria-label="最後のページへ"], button[aria-label="Last Page"]',
     deleteButtons: 'button[aria-label="Delete"], .btn-delete, [data-testid="delete-btn"]',
+    btnEdit: 'button[aria-label="編集"], button:has(.lucide-pencil)',
 
     // Bảng ánh xạ vị trí cột ngữ nghĩa - Triệt tiêu Magic Index (.nth(4))
     columns: {

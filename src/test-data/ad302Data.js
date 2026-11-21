@@ -5,7 +5,7 @@
 
 export const ad302Data = {
   routes: {
-    liverList: (agencyId = 1) => `/admin/agencies/${agencyId}/livers`,
+    liverList: (agencyId = 1) => `/agencies/detail/${agencyId}?tab=list-streamer`,
     buildQuery: (params = {}) => {
       const searchParams = new URLSearchParams();
       Object.entries(params).forEach(([k, v]) => {

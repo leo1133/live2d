@@ -1,0 +1,190 @@
+name: Playwright Automation CI/CD
+
+on:
+  push:
+    branches: [ main, master, develop, 'fix/**', 'feat/**' ]
+  pull_request:
+    branches: [ main, master, develop ]
+  schedule:
+    # Chạy hồi quy tự động mỗi đêm lúc 02:00 UTC (09:00 AM Giờ VN)
+    - cron: '0 2 * * *'
+  workflow_dispatch:
+    inputs:
+      environment:
+        description: 'Môi trường kiểm thử (dev / staging)'
+        required: true
+        default: 'dev'
+        type: choice
+        options:
+          - dev
+          - staging
+      test_suite:
+        description: 'Phạm vi kiểm thử'
+        required: true
+        default: 'all'
+        type: choice
+        options:
+          - all
+          - api
+          - ui
+          - e2e
+          - smoke-aa000
+          - gacha-limited
+      workers:
+        description: 'Số lượng workers song song'
+        required: false
+        default: '2'
+
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+
+jobs:
+  test:
+    name: Run Tests (${{ inputs.environment || 'dev' }} - ${{ inputs.test_suite || 'all' }})
+    timeout-minutes: 60
+    runs-on: ubuntu-latest
+
+    # Sử dụng GitHub Environment để lấy biến môi trường tương ứng (nếu cấu hình)
+    environment: ${{ inputs.environment || 'dev' }}
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js 20
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: 'npm'
+
+      - name: Install Dependencies
+        run: npm ci
+
+      - name: Cache Playwright Browsers
+        id: playwright-cache
+        uses: actions/cache@v4
+        with:
+          path: ~/.cache/ms-playwright
+          key: ${{ runner.os }}-playwright-${{ hashFiles('package-lock.json') }}
+
+      - name: Install Playwright Chromium (Binary & OS Deps)
+        if: steps.playwright-cache.outputs.cache-hit != 'true'
+        run: npx playwright install --with-deps chromium
+
+      - name: Install OS Dependencies only (when cache hit)
+        if: steps.playwright-cache.outputs.cache-hit == 'true'
+        run: npx playwright install-deps chromium
+
+      - name: Generate .env.${{ inputs.environment || 'dev' }} file from Secrets
+        env:
+          TARGET_ENV: ${{ inputs.environment || 'dev' }}
+          UI_BASE_URL: ${{ secrets.UI_BASE_URL }}
+          API_BASE_URL: ${{ secrets.API_BASE_URL }}
+          BASIC_AUTH_USER: ${{ secrets.BASIC_AUTH_USER }}
+          BASIC_AUTH_PASS: ${{ secrets.BASIC_AUTH_PASS }}
+          ADMIN_EMAIL: ${{ secrets.ADMIN_EMAIL }}
+          ADMIN_ID: ${{ secrets.ADMIN_ID }}
+          ADMIN_PASSWORD: ${{ secrets.ADMIN_PASSWORD }}
+          LOGIN_TYPE: ${{ secrets.LOGIN_TYPE || 'email' }}
+          DB_HOST: ${{ secrets.DB_HOST }}
+          DB_PORT: ${{ secrets.DB_PORT || '5432' }}
+          DB_NAME: ${{ secrets.DB_NAME }}
+          DB_USER: ${{ secrets.DB_USER }}
+          DB_PASSWORD: ${{ secrets.DB_PASSWORD }}
+          LIMITED_GACHA_MODEL_ID: ${{ secrets.LIMITED_GACHA_MODEL_ID || '45' }}
+          LIMITED_GACHA_PACKAGE_ID: ${{ secrets.LIMITED_GACHA_PACKAGE_ID || '53' }}
+          LIMITED_GACHA_ITEM_ID: ${{ secrets.LIMITED_GACHA_ITEM_ID || '133' }}
+        run: |
+          ENV_FILE=".env.${TARGET_ENV}"
+          cat <<EOF > "$ENV_FILE"
+          UI_BASE_URL=${UI_BASE_URL}
+          API_BASE_URL=${API_BASE_URL}
+          BASIC_AUTH_USER=${BASIC_AUTH_USER}
+          BASIC_AUTH_PASS=${BASIC_AUTH_PASS}
+          ADMIN_EMAIL=${ADMIN_EMAIL}
+          ADMIN_ID=${ADMIN_ID}
+          ADMIN_PASSWORD=${ADMIN_PASSWORD}
+          LOGIN_TYPE=${LOGIN_TYPE}
+          DB_HOST=${DB_HOST}
+          DB_PORT=${DB_PORT}
+          DB_NAME=${DB_NAME}
+          DB_USER=${DB_USER}
+          DB_PASSWORD=${DB_PASSWORD}
+          LIMITED_GACHA_MODEL_ID=${LIMITED_GACHA_MODEL_ID}
+          LIMITED_GACHA_PACKAGE_ID=${LIMITED_GACHA_PACKAGE_ID}
+          LIMITED_GACHA_ITEM_ID=${LIMITED_GACHA_ITEM_ID}
+          EOF
+          echo "✅ Đã tạo file cấu hình $ENV_FILE thành công."
+
+      - name: Execute Playwright Tests
+        env:
+          ENV: ${{ inputs.environment || 'dev' }}
+          WORKERS: ${{ inputs.workers || '2' }}
+          CI: true
+        run: |
+          SUITE="${{ inputs.test_suite || 'all' }}"
+          echo "🚀 Bắt đầu thực thi: Suite [$SUITE] trên Môi trường [$ENV]..."
+          case "$SUITE" in
+            api)
+              ENV=$ENV npx playwright test tests/api
+              ;;
+            ui)
+              ENV=$ENV npx playwright test tests/ui
+              ;;
+            e2e)
+              ENV=$ENV npx playwright test tests/e2e
+              ;;
+            smoke-aa000)
+              ENV=$ENV npx playwright test tests/**/aa000.*.spec.js
+              ;;
+            gacha-limited)
+              ENV=$ENV npx playwright test tests/ui/aq201.ui.spec.js
+              ;;
+            *)
+              ENV=$ENV npx playwright test
+              ;;
+          esac
+
+      - name: Upload HTML Test Report Artifact
+        uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: playwright-report-${{ inputs.environment || 'dev' }}-${{ github.run_id }}
+          path: playwright-report/
+          retention-days: 30
+
+      - name: Upload Traces & Failure Evidence
+        uses: actions/upload-artifact@v4
+        if: failure()
+        with:
+          name: test-failure-evidence-${{ github.run_id }}
+          path: |
+            test-results/
+            temp_trace/
+          retention-days: 14
+
+  deploy-report:
+    name: Publish Report to GitHub Pages
+    needs: test
+    if: always() && github.ref == 'refs/heads/main' && (needs.test.result == 'success' || needs.test.result == 'failure')
+    runs-on: ubuntu-latest
+    steps:
+      - name: Setup Pages
+        uses: actions/configure-pages@v5
+
+      - name: Download HTML Report Artifact
+        uses: actions/download-artifact@v4
+        with:
+          name: playwright-report-${{ inputs.environment || 'dev' }}-${{ github.run_id }}
+          path: ./report
+
+      - name: Upload Pages Artifact
+        uses: actions/upload-pages-artifact@v3
+        with:
+          path: ./report
+
+      - name: Deploy to GitHub Pages
+        id: deployment
+        uses: actions/deploy-pages@v4

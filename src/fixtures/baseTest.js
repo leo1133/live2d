@@ -18,9 +18,10 @@ export class CustomApiClient {
 
   async handleRequest(requestFn) {
     let response = await requestFn();
-    // Tự động thử lại 1 lần nếu gặp lỗi mạng tạm thời từ gateway dev/staging (502/503/504)
-    if ([502, 503, 504].includes(response.status())) {
-      await new Promise((resolve) => setTimeout(resolve, 800));
+    // Tự động thử lại nếu gặp lỗi mạng tạm thời hoặc rate-limit (429/502/503/504)
+    if ([429, 502, 503, 504].includes(response.status())) {
+      const waitTime = response.status() === 429 ? 1500 : 800;
+      await new Promise((resolve) => setTimeout(resolve, waitTime));
       response = await requestFn();
     }
     if (this.isAuthRequest && (response.status() === 401 || response.status() === 403)) {

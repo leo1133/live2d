@@ -5,7 +5,7 @@
 
 export const ad200Data = {
   routes: {
-    create: "/admin/agencies/create",
+    create: "/agencies/create",
     buildQuery: (params = {}) => {
       const searchParams = new URLSearchParams();
       Object.entries(params).forEach(([k, v]) => {
