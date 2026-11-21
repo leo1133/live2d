@@ -65,7 +65,7 @@ function isTokenValid(token) {
   }
 }
 
-async function getOrFetchToken(playwright) {
+export async function getOrFetchToken(playwright) {
   // 1. In-memory cache check
   if (isTokenValid(inMemoryToken)) {
     return inMemoryToken;
@@ -92,7 +92,15 @@ async function getOrFetchToken(playwright) {
   }
 
   const apiBaseUrl = getApiBaseUrl();
-  const requestContext = await playwright.request.newContext({ baseURL: apiBaseUrl });
+  const requestContext = await playwright.request.newContext({
+    baseURL: apiBaseUrl,
+    httpCredentials: process.env.BASIC_AUTH_USER
+      ? {
+          username: process.env.BASIC_AUTH_USER,
+          password: process.env.BASIC_AUTH_PASS || "",
+        }
+      : undefined,
+  });
 
   // 3. Try refresh token if available
   if (cachedRefreshToken) {
@@ -148,7 +156,14 @@ export const test = base.extend({
   },
   
   authAPI: async ({ playwright }, use) => {
-    const standaloneContext = await playwright.request.newContext();
+    const standaloneContext = await playwright.request.newContext({
+      httpCredentials: process.env.BASIC_AUTH_USER
+        ? {
+            username: process.env.BASIC_AUTH_USER,
+            password: process.env.BASIC_AUTH_PASS || "",
+          }
+        : undefined,
+    });
     await use(new AuthAPI(standaloneContext));
     await standaloneContext.dispose();
   },
@@ -158,6 +173,12 @@ export const test = base.extend({
     const rawContext = await playwright.request.newContext({
       baseURL: getApiBaseUrl(),
       extraHTTPHeaders: { Authorization: `Bearer ${access_token}` },
+      httpCredentials: process.env.BASIC_AUTH_USER
+        ? {
+            username: process.env.BASIC_AUTH_USER,
+            password: process.env.BASIC_AUTH_PASS || "",
+          }
+        : undefined,
     });
     await use(new CustomApiClient(rawContext, true));
     await rawContext.dispose();
@@ -167,6 +188,12 @@ export const test = base.extend({
     const rawContext = await playwright.request.newContext({
       baseURL: getApiBaseUrl(),
       extraHTTPHeaders: {},
+      httpCredentials: process.env.BASIC_AUTH_USER
+        ? {
+            username: process.env.BASIC_AUTH_USER,
+            password: process.env.BASIC_AUTH_PASS || "",
+          }
+        : undefined,
     });
     await use(new CustomApiClient(rawContext, false));
     await rawContext.dispose();

@@ -98,9 +98,6 @@ jobs:
           DB_NAME: ${{ secrets.DB_NAME }}
           DB_USER: ${{ secrets.DB_USER }}
           DB_PASSWORD: ${{ secrets.DB_PASSWORD }}
-          LIMITED_GACHA_MODEL_ID: ${{ secrets.LIMITED_GACHA_MODEL_ID || '45' }}
-          LIMITED_GACHA_PACKAGE_ID: ${{ secrets.LIMITED_GACHA_PACKAGE_ID || '53' }}
-          LIMITED_GACHA_ITEM_ID: ${{ secrets.LIMITED_GACHA_ITEM_ID || '133' }}
         run: |
           ENV_FILE=".env.${TARGET_ENV}"
           cat <<EOF > "$ENV_FILE"
@@ -117,9 +114,6 @@ jobs:
           DB_NAME=${DB_NAME}
           DB_USER=${DB_USER}
           DB_PASSWORD=${DB_PASSWORD}
-          LIMITED_GACHA_MODEL_ID=${LIMITED_GACHA_MODEL_ID}
-          LIMITED_GACHA_PACKAGE_ID=${LIMITED_GACHA_PACKAGE_ID}
-          LIMITED_GACHA_ITEM_ID=${LIMITED_GACHA_ITEM_ID}
           EOF
           echo "✅ Đã tạo file cấu hình $ENV_FILE thành công."
 
