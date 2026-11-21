@@ -2,7 +2,7 @@ name: Playwright Automation CI/CD
 
 on:
   push:
-    branches: [ main, master, develop, 'fix/**', 'feat/**' ]
+    branches: [ main, master, develop ]
   pull_request:
     branches: [ main, master, develop ]
   schedule:
@@ -25,6 +25,7 @@ on:
         type: choice
         options:
           - all
+          - ad100
           - api
           - ui
           - e2e
@@ -35,6 +36,10 @@ on:
         required: false
         default: '2'
 
+concurrency:
+  group: ${{ github.workflow }}-${{ github.head_ref || github.ref }}
+  cancel-in-progress: true
+
 permissions:
   contents: read
   pages: write
@@ -42,8 +47,8 @@ permissions:
 
 jobs:
   test:
-    name: Run Tests (${{ inputs.environment || 'dev' }} - ${{ inputs.test_suite || 'all' }})
-    timeout-minutes: 60
+    name: Run Tests (${{ inputs.environment || 'dev' }})
+    timeout-minutes: 45
     runs-on: ubuntu-latest
 
     # Sử dụng GitHub Environment để lấy biến môi trường tương ứng (nếu cấu hình)
@@ -118,32 +123,67 @@ jobs:
           EOF
           echo "✅ Đã tạo file cấu hình $ENV_FILE thành công."
 
+      - name: Pre-flight Backend Health Check
+        env:
+          TARGET_ENV: ${{ inputs.environment || 'dev' }}
+        run: |
+          source ".env.${TARGET_ENV}"
+          echo "🔍 Kiểm tra trạng thái kết nối tới: $API_BASE_URL/api/v1/common/version..."
+          HTTP_STATUS=$(curl -s -o /dev/null -w "%{http_code}" -m 10 "$API_BASE_URL/api/v1/common/version" -u "$BASIC_AUTH_USER:$BASIC_AUTH_PASS" || echo "000")
+          echo "HTTP Status Code nhận về: $HTTP_STATUS"
+          if [ "$HTTP_STATUS" = "502" ] || [ "$HTTP_STATUS" = "503" ] || [ "$HTTP_STATUS" = "504" ] || [ "$HTTP_STATUS" = "000" ]; then
+            echo "::error::❌ Máy chủ Backend API ($API_BASE_URL) hiện không phản hồi (Mã lỗi: HTTP $HTTP_STATUS). Hủy bỏ lượt chạy test ngay lập tức để tránh lãng phí thời gian retry vô ích."
+            exit 1
+          fi
+          echo "✅ Máy chủ Backend phản hồi bình thường."
+
       - name: Execute Playwright Tests
         env:
           ENV: ${{ inputs.environment || 'dev' }}
           WORKERS: ${{ inputs.workers || '2' }}
           CI: true
         run: |
-          SUITE="${{ inputs.test_suite || 'all' }}"
-          echo "🚀 Bắt đầu thực thi: Suite [$SUITE] trên Môi trường [$ENV]..."
+          SUITE="${{ inputs.test_suite }}"
+          # Tự động nhận diện phạm vi test nếu chạy qua Pull Request
+          if [ -z "$SUITE" ]; then
+            BRANCH_REF="${{ github.head_ref || github.ref_name }}"
+            echo "📌 Nhánh thực thi: $BRANCH_REF"
+            if [[ "$BRANCH_REF" =~ "ad100" ]]; then
+              SUITE="ad100"
+            elif [[ "$BRANCH_REF" =~ "gacha" || "$BRANCH_REF" =~ "aq201" ]]; then
+              SUITE="gacha-limited"
+            elif [[ "$BRANCH_REF" =~ "aa000" ]]; then
+              SUITE="smoke-aa000"
+            else
+              SUITE="all"
+            fi
+          fi
+
+          echo "🚀 Bắt đầu thực thi: Suite [$SUITE] trên Môi trường [$ENV] (Fail-Fast limit: 5)..."
+          FAIL_FAST_FLAG="--max-failures=5"
+
           case "$SUITE" in
+            ad100)
+              echo "🎯 Chạy riêng bộ kiểm thử AD100..."
+              ENV=$ENV npx playwright test tests/**/ad100.*.spec.js $FAIL_FAST_FLAG
+              ;;
             api)
-              ENV=$ENV npx playwright test tests/api
+              ENV=$ENV npx playwright test tests/api $FAIL_FAST_FLAG
               ;;
             ui)
-              ENV=$ENV npx playwright test tests/ui
+              ENV=$ENV npx playwright test tests/ui $FAIL_FAST_FLAG
               ;;
             e2e)
-              ENV=$ENV npx playwright test tests/e2e
+              ENV=$ENV npx playwright test tests/e2e $FAIL_FAST_FLAG
               ;;
             smoke-aa000)
-              ENV=$ENV npx playwright test tests/**/aa000.*.spec.js
+              ENV=$ENV npx playwright test tests/**/aa000.*.spec.js $FAIL_FAST_FLAG
               ;;
             gacha-limited)
-              ENV=$ENV npx playwright test tests/ui/aq201.ui.spec.js
+              ENV=$ENV npx playwright test tests/ui/aq201.ui.spec.js $FAIL_FAST_FLAG
               ;;
             *)
-              ENV=$ENV npx playwright test
+              ENV=$ENV npx playwright test $FAIL_FAST_FLAG
               ;;
           esac
 
