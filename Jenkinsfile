@@ -1,19 +1,23 @@
 pipeline {
     agent any
 
-    tools {
-        nodejs 'NodeJS-20'
-    }
-
     environment {
         CI = 'true'
         ENV = 'dev'
+        PATH = "/usr/local/bin:/opt/homebrew/bin:$PATH"
     }
 
     stages {
         stage('Checkout Source Code') {
             steps {
                 checkout scm
+            }
+        }
+
+        stage('Check Node Environment') {
+            steps {
+                sh 'node -v'
+                sh 'npm -v'
             }
         }
 
