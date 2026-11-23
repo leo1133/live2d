@@ -42,7 +42,7 @@ test.describe.serial("UI AD302: Agency Streamer List (事務所詳細_所属ラ�
   // ==========================================
   test.describe("1. Common & Navigation Controls", () => {
     test("[AD302-1][AD302-3] Kiểm tra hiển thị tiêu đề và URL màn hình AD302", async () => {
-      await expect(sharedPage).toHaveURL(new RegExp(`/admin/agencies/${ad302Data.sampleData.agencyId}/livers`));
+      await expect(sharedPage).toHaveURL(new RegExp(`/agencies/detail/${ad302Data.sampleData.agencyId}`));
       await expect(liverPage.pageTitle).toBeVisible();
     });
 

@@ -20,10 +20,15 @@ export class CustomApiClient {
   async handleRequest(requestFn) {
     let response = await requestFn();
     let retries = 0;
-    // Tự động thử lại nếu gặp lỗi mạng tạm thời hoặc rate-limit (429/502/503/504)
+    // Tự động thử lại với Exponential Backoff + Jitter nếu gặp lỗi mạng tạm thời hoặc rate-limit (429/502/503/504)
     while ([429, 502, 503, 504].includes(response.status()) && retries < 3) {
       retries++;
-      const waitTime = response.status() === 429 ? 2000 : 800;
+      const retryAfter = response.headers()['retry-after'];
+      const waitTime = retryAfter
+        ? parseInt(retryAfter, 10) * 1000
+        : (response.status() === 429
+            ? Math.pow(2, retries) * 1500 + Math.floor(Math.random() * 500)
+            : 600 + Math.floor(Math.random() * 300));
       await new Promise((resolve) => setTimeout(resolve, waitTime));
       response = await requestFn();
     }
@@ -143,9 +148,12 @@ export async function getOrFetchToken(playwright) {
   });
 
   let retries = 0;
-  while ([429, 502, 503, 504].includes(response.status()) && retries < 3) {
+  while ([429, 502, 503, 504].includes(response.status()) && retries < 4) {
     retries++;
-    const waitTime = response.status() === 429 ? 2000 : 800;
+    const waitTime =
+      response.status() === 429
+        ? Math.pow(2, retries) * 1000 + Math.floor(Math.random() * 800)
+        : 800 + Math.floor(Math.random() * 400);
     await new Promise((resolve) => setTimeout(resolve, waitTime));
     response = await requestContext.post(ENDPOINTS.AUTH.LOGIN, {
       data: loginPayload,

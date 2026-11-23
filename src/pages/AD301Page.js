@@ -17,8 +17,9 @@ export class AD301Page {
 
     // 1. Navigation & Breadcrumbs (Tham chiếu qua ad301Data.selectors)
     this.breadcrumb = page
-      .locator(ad301Data.selectors.breadcrumb)
-      .or(page.getByText(ad301Data.labels.breadcrumbs));
+      .getByRole("navigation", { name: "breadcrumb" })
+      .or(page.locator(ad301Data.selectors.breadcrumb))
+      .first();
     this.breadcrumbLink = page.getByText(ad301Data.labels.sidebarMenu);
     this.pageTitle = page
       .getByRole("heading", { name: ad301Data.labels.pageTitle })
@@ -53,7 +54,7 @@ export class AD301Page {
     // 4. Logo Controls (Tham chiếu qua ad301Data.selectors)
     this.logoFileInput = page.locator(ad301Data.selectors.logoFileInput);
     this.selectLogoButton = page
-      .getByRole("button", { name: ad301Data.labels.btnSelectImage })
+      .getByRole("button", { name: /画像(を選択|をアップロード|アップロード)/ })
       .or(page.locator(ad301Data.selectors.selectLogoButton));
     this.logoPreview = page.locator(ad301Data.selectors.logoPreview);
 
@@ -65,10 +66,10 @@ export class AD301Page {
       .locator(ad301Data.selectors.statusConfirmModal)
       .filter({ hasText: ad301Data.messages.statusChangeConfirm });
     this.statusConfirmBtn = this.statusConfirmModal.getByRole("button", {
-      name: ad301Data.labels.modalConfirmStatus,
+      name: /停止|確認/,
     });
     this.statusCancelBtn = this.statusConfirmModal.getByRole("button", {
-      name: ad301Data.labels.modalCancel,
+      name: /キャンセル/,
     });
 
     // 6. Action Buttons
@@ -89,10 +90,10 @@ export class AD301Page {
       .locator(ad301Data.selectors.deleteConfirmModal)
       .filter({ hasText: ad301Data.messages.deleteConfirm });
     this.deleteConfirmBtn = this.deleteConfirmModal.getByRole("button", {
-      name: ad301Data.labels.modalConfirmDelete,
+      name: /削除/,
     });
     this.deleteCancelBtn = this.deleteConfirmModal.getByRole("button", {
-      name: ad301Data.labels.modalCancel,
+      name: /キャンセル/,
     });
 
     // 8. Error & Toast Feedback (Tham chiếu qua ad301Data.selectors)

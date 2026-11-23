@@ -39,13 +39,13 @@ test.describe.serial("UI AD303: Revenue Analysis & Reward Management", () => {
 
   test.describe("1. Common & Navigation Controls", () => {
     test("[AD303-1]: [0] Kiểm tra truy cập màn hình - Check hiển thị menu & sidebar", async () => {
-    await expect(revenuePage.pageTitle.or(revenuePage.cardCashBalance)).toBeVisible();
+    await expect(revenuePage.pageTitle).toBeVisible();
     });
     test("[AD303-2]: [0] Kiểm tra truy cập màn hình - Check hiển thị menu & sidebar", async () => {
-    await expect(revenuePage.pageTitle.or(revenuePage.cardCashBalance)).toBeVisible();
+    await expect(revenuePage.pageTitle).toBeVisible();
     });
     test("[AD303-3]: [0] Kiểm tra truy cập màn hình - Check hiển thị menu & sidebar", async () => {
-    await expect(revenuePage.pageTitle.or(revenuePage.cardCashBalance)).toBeVisible();
+    await expect(revenuePage.pageTitle).toBeVisible();
     });
     test("[AD303-4]: [0] Kiểm tra truy cập màn hình - Check hiển thị breadcrumb", async () => {
     await expect(revenuePage.breadcrumb).toBeVisible();

@@ -19,8 +19,9 @@ export class AD303Page {
 
     // 1. Navigation & Breadcrumbs (Tham chiếu qua ad303Data.selectors)
     this.breadcrumb = page
-      .locator(ad303Data.selectors.breadcrumb)
-      .or(page.getByText(ad303Data.labels.breadcrumbs));
+      .getByRole("navigation", { name: "breadcrumb" })
+      .or(page.locator(ad303Data.selectors.breadcrumb))
+      .first();
     this.pageTitle = page
       .getByRole("heading", { name: ad303Data.labels.pageTitle })
       .or(page.locator(ad303Data.selectors.pageHeading).filter({ hasText: ad303Data.labels.pageTitle }));

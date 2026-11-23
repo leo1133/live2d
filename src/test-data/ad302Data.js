@@ -20,11 +20,11 @@ export const ad302Data = {
 
   // 100% Selectors tĩnh được quy hoạch tập trung (Zero Raw Selectors inline trong POM/Spec)
   selectors: {
-    breadcrumb: '.breadcrumb, [aria-label="Breadcrumb"]',
+    breadcrumb: '.breadcrumb, nav[aria-label="breadcrumb" i], [aria-label="Breadcrumb" i]',
     pageHeading: "h1, h2",
-    tabDetail: 'a:has-text("詳細"), [role="tab"]:has-text("詳細")',
-    tabLiverList: 'a:has-text("ライバー一覧"), [role="tab"]:has-text("ライバー一覧")',
-    tabRevenue: 'a:has-text("売上"), [role="tab"]:has-text("売上")',
+    tabDetail: '[role="tab"]:has-text("詳細")',
+    tabLiverList: '[role="tab"]:has-text("ライバー一覧")',
+    tabRevenue: '[role="tab"]:has-text("売上")',
     searchInput: 'input[type="text"][name="q"], input[type="search"]',
     statusDropdown: 'select[name="status"]',
     agencyStatusDropdown: 'select[name="agency_status"]',
@@ -36,7 +36,7 @@ export const ad302Data = {
     paginationContainer: '.pagination, [aria-label="Pagination"]',
     nextPageButton: '.pagination .next, button[aria-label="Next page"]',
     prevPageButton: '.pagination .prev, button[aria-label="Previous page"]',
-    toastNotification: '.toast, [role="alert"], .notification',
+    toastNotification: '.toast, [role="alert"]:not(#__next-route-announcer__), .notification, [data-slot="toast"]',
 
     // Ánh xạ vị trí cột ngữ nghĩa (Semantic Column Index Mapping - Rule 05)
     columns: {

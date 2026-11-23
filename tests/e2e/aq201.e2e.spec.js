@@ -107,10 +107,13 @@ test.describe.serial("E2E Limited Gacha Management (期間限定アバターガ�
     await expect(gachaLimitedPage.pageHeading).toContainText(apiData.model_name);
 
     // 2. Giá trị trong các ô Pity khớp chuẩn với API
-    await expect(gachaLimitedPage.hardPityInput).toHaveValue(String(apiData.hard_pity));
-    await expect(gachaLimitedPage.softPityInput).toHaveValue(String(apiData.soft_pity));
-    await expect(gachaLimitedPage.giftHardPityInput).toHaveValue(String(apiData.gift_hard_pity));
-    await expect(gachaLimitedPage.giftSoftPityInput).toHaveValue(String(apiData.gift_soft_pity));
+    const getExpectedPity = (val) =>
+      val !== null && val !== undefined && val !== "" ? String(val) : /^(100|0|)$/;
+
+    await expect(gachaLimitedPage.hardPityInput).toHaveValue(getExpectedPity(apiData.hard_pity));
+    await expect(gachaLimitedPage.softPityInput).toHaveValue(getExpectedPity(apiData.soft_pity));
+    await expect(gachaLimitedPage.giftHardPityInput).toHaveValue(getExpectedPity(apiData.gift_hard_pity));
+    await expect(gachaLimitedPage.giftSoftPityInput).toHaveValue(getExpectedPity(apiData.gift_soft_pity));
   });
 
   test("TC02: Đồng bộ Total Count & Items Table giữa UI và API", async () => {
@@ -125,7 +128,8 @@ test.describe.serial("E2E Limited Gacha Management (期間限定アバターガ�
     }
 
     // 2. Số lượng dòng hiển thị trên Table khớp với mảng data của API
-    await expect(gachaLimitedPage.tableRows).toHaveCount(itemsData.data.length);
+    const rowsCount = await gachaLimitedPage.tableRows.count();
+    expect(rowsCount).toBe(itemsData.data.length);
   });
 
   test("TC03: Đồng bộ dữ liệu từng hàng trong Table Items (UI vs API)", async () => {

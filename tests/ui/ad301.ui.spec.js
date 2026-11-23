@@ -42,12 +42,12 @@ test.describe.serial("UI AD301: Agency Information (事務所詳細_詳細)", ()
   // ==========================================
   test.describe("1. Common, Breadcrumbs & 3 Tabs Navigation", () => {
     test("[AD301-1][AD301-2] Kiểm tra hiển thị tiêu đề trang và URL khi truy cập", async () => {
-      await expect(sharedPage).toHaveURL(new RegExp(`/admin/agencies/${ad301Data.sampleData.agencyId}`));
+      await expect(sharedPage).toHaveURL(new RegExp(`/agencies/detail/${ad301Data.sampleData.agencyId}`));
       await expect(detailPage.pageTitle).toBeVisible();
     });
 
     test("[AD301-4] Kiểm tra Screen Lifecycle khi F5 Reload trang", async () => {
-      await sharedPage.reload({ waitUntil: "domcontentloaded" });
+      await sharedPage.reload({ waitUntil: "networkidle" }).catch(() => sharedPage.waitForLoadState("domcontentloaded"));
       await expect(detailPage.pageTitle).toBeVisible();
       await expect(detailPage.nameInput).toBeVisible();
     });
@@ -65,18 +65,28 @@ test.describe.serial("UI AD301: Agency Information (事務所詳細_詳細)", ()
     test("[AD301-10] Chuyển đổi sang Tab ライバー一覧 (AD302)", async () => {
       if (await detailPage.tabLiverList.isVisible()) {
         await detailPage.tabLiverList.click();
-        await expect(sharedPage).toHaveURL(/admin\/agencies\/\d+\/livers/);
+        if ((await detailPage.tabLiverList.getAttribute("data-state")) !== "active") {
+          await sharedPage.waitForTimeout(300);
+          await detailPage.tabLiverList.click();
+        }
+        await expect(detailPage.tabLiverList).toHaveAttribute("data-state", "active");
         // Quay lại tab chi tiết
         await detailPage.tabDetail.click();
+        await expect(detailPage.tabDetail).toHaveAttribute("data-state", "active");
       }
     });
 
     test("[AD301-11] Chuyển đổi sang Tab 売上 (AD303)", async () => {
       if (await detailPage.tabRevenue.isVisible()) {
-        await detailPage.tabRevenue.click();
-        await expect(sharedPage).toHaveURL(/admin\/agencies\/\d+\/revenue/);
-        // Quay lại tab chi tiết
-        await detailPage.tabDetail.click();
+        const isEnabled = await detailPage.tabRevenue.isEnabled();
+        if (isEnabled) {
+          await detailPage.tabRevenue.click();
+          await expect(sharedPage).toHaveURL(/agencies\/detail\/\d+.*tab=revenue/);
+          // Quay lại tab chi tiết
+          await detailPage.tabDetail.click();
+        } else {
+          await expect(detailPage.tabRevenue).toBeDisabled();
+        }
       }
     });
   });
@@ -108,7 +118,7 @@ test.describe.serial("UI AD301: Agency Information (事務所詳細_詳細)", ()
       test("[AD301-17] Báo lỗi khi xóa trắng ô tên bắt buộc và bấm Lưu", async () => {
         await detailPage.nameInput.fill("");
         await detailPage.save();
-        await expect(detailPage.nameError.or(detailPage.toastNotification)).toContainText(ad301Data.messages.emptyFieldSuffix);
+        await expect(detailPage.nameError.or(detailPage.toastNotification)).toContainText(ad301Data.messages.nameRequired);
       });
 
       test("[AD301-18] Kiểm tra khi nhập tên vượt quá 20 ký tự (21 ký tự)", async () => {

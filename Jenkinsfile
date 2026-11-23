@@ -31,8 +31,14 @@ pipeline {
         stage('Prepare Environment') {
             steps {
                 sh '''
-                if [ ! -f .env.dev ] && [ -f .env.example ]; then
-                    cp .env.example .env.dev
+                if [ ! -f .env.dev ]; then
+                    if [ -f /Users/ngaphuong/.jenkins/.env.dev ]; then
+                        cp /Users/ngaphuong/.jenkins/.env.dev .env.dev
+                    elif [ -f /Users/ngaphuong/.jenkins/workspace/live2d-pipeline/.env.dev ]; then
+                        cp /Users/ngaphuong/.jenkins/workspace/live2d-pipeline/.env.dev .env.dev
+                    elif [ -f .env.example ]; then
+                        cp .env.example .env.dev
+                    fi
                 fi
                 '''
             }

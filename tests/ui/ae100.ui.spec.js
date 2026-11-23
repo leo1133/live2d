@@ -326,7 +326,11 @@ test.describe.serial("UI User Management Suite", () => {
         await targetDropdown.click();
         await expect(sharedPage.getByRole("listbox")).toBeVisible();
 
-        await sharedPage.mouse.click(0, 0);
+        // Thao tác đóng dropdown: ấn Escape hoặc click ngoài vùng dropdown
+        await sharedPage.keyboard.press("Escape");
+        if (await sharedPage.getByRole("listbox").isVisible()) {
+          await sharedPage.mouse.click(10, 10);
+        }
 
         await expect(sharedPage.getByRole("listbox")).toBeHidden();
       });
