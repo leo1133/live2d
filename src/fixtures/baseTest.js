@@ -2,6 +2,7 @@ import { test as base } from '@playwright/test';
 import { AA000Page as LoginPage } from '../pages/AA000Page.js';
 import { AA000API as AuthAPI } from '../api/AA000API.js';
 import { ENDPOINTS, getApiBaseUrl, getApiTokenFile } from '../config/endpoint.js';
+import { DataDiscovery } from '../utils/dataDiscovery.js';
 import fs from "fs";
 import path from "path";
 
@@ -18,9 +19,11 @@ export class CustomApiClient {
 
   async handleRequest(requestFn) {
     let response = await requestFn();
+    let retries = 0;
     // Tự động thử lại nếu gặp lỗi mạng tạm thời hoặc rate-limit (429/502/503/504)
-    if ([429, 502, 503, 504].includes(response.status())) {
-      const waitTime = response.status() === 429 ? 1500 : 800;
+    while ([429, 502, 503, 504].includes(response.status()) && retries < 3) {
+      retries++;
+      const waitTime = response.status() === 429 ? 2000 : 800;
       await new Promise((resolve) => setTimeout(resolve, waitTime));
       response = await requestFn();
     }
@@ -65,7 +68,7 @@ function isTokenValid(token) {
   }
 }
 
-async function getOrFetchToken(playwright) {
+export async function getOrFetchToken(playwright) {
   // 1. In-memory cache check
   if (isTokenValid(inMemoryToken)) {
     return inMemoryToken;
@@ -92,7 +95,15 @@ async function getOrFetchToken(playwright) {
   }
 
   const apiBaseUrl = getApiBaseUrl();
-  const requestContext = await playwright.request.newContext({ baseURL: apiBaseUrl });
+  const requestContext = await playwright.request.newContext({
+    baseURL: apiBaseUrl,
+    httpCredentials: process.env.BASIC_AUTH_USER
+      ? {
+          username: process.env.BASIC_AUTH_USER,
+          password: process.env.BASIC_AUTH_PASS || "",
+        }
+      : undefined,
+  });
 
   // 3. Try refresh token if available
   if (cachedRefreshToken) {
@@ -118,13 +129,28 @@ async function getOrFetchToken(playwright) {
   }
 
   // 4. Full Login
-  const response = await requestContext.post(ENDPOINTS.AUTH.LOGIN, {
-    data: {
-      email_user_id: process.env.ADMIN_EMAIL || process.env.ADMIN_ID,
-      password: process.env.ADMIN_PASSWORD,
-      login_type: process.env.LOGIN_TYPE ? parseInt(process.env.LOGIN_TYPE, 10) : 1,
-    },
+  const loginPayload = {
+    email_user_id: process.env.ADMIN_EMAIL || process.env.ADMIN_ID,
+    password: process.env.ADMIN_PASSWORD,
+    login_type:
+      process.env.LOGIN_TYPE && !isNaN(parseInt(process.env.LOGIN_TYPE, 10))
+        ? parseInt(process.env.LOGIN_TYPE, 10)
+        : 1,
+  };
+
+  let response = await requestContext.post(ENDPOINTS.AUTH.LOGIN, {
+    data: loginPayload,
   });
+
+  let retries = 0;
+  while ([429, 502, 503, 504].includes(response.status()) && retries < 3) {
+    retries++;
+    const waitTime = response.status() === 429 ? 2000 : 800;
+    await new Promise((resolve) => setTimeout(resolve, waitTime));
+    response = await requestContext.post(ENDPOINTS.AUTH.LOGIN, {
+      data: loginPayload,
+    });
+  }
 
   if (response.status() !== 200) {
     await requestContext.dispose();
@@ -148,8 +174,16 @@ export const test = base.extend({
   },
   
   authAPI: async ({ playwright }, use) => {
-    const standaloneContext = await playwright.request.newContext();
-    await use(new AuthAPI(standaloneContext));
+    const standaloneContext = await playwright.request.newContext({
+      httpCredentials: process.env.BASIC_AUTH_USER
+        ? {
+            username: process.env.BASIC_AUTH_USER,
+            password: process.env.BASIC_AUTH_PASS || "",
+          }
+        : undefined,
+    });
+    const client = new CustomApiClient(standaloneContext, false);
+    await use(new AuthAPI(client));
     await standaloneContext.dispose();
   },
 
@@ -158,6 +192,12 @@ export const test = base.extend({
     const rawContext = await playwright.request.newContext({
       baseURL: getApiBaseUrl(),
       extraHTTPHeaders: { Authorization: `Bearer ${access_token}` },
+      httpCredentials: process.env.BASIC_AUTH_USER
+        ? {
+            username: process.env.BASIC_AUTH_USER,
+            password: process.env.BASIC_AUTH_PASS || "",
+          }
+        : undefined,
     });
     await use(new CustomApiClient(rawContext, true));
     await rawContext.dispose();
@@ -167,6 +207,12 @@ export const test = base.extend({
     const rawContext = await playwright.request.newContext({
       baseURL: getApiBaseUrl(),
       extraHTTPHeaders: {},
+      httpCredentials: process.env.BASIC_AUTH_USER
+        ? {
+            username: process.env.BASIC_AUTH_USER,
+            password: process.env.BASIC_AUTH_PASS || "",
+          }
+        : undefined,
     });
     await use(new CustomApiClient(rawContext, false));
     await rawContext.dispose();
@@ -175,7 +221,13 @@ export const test = base.extend({
   db: async ({}, use) => {
     const { DBHelper } = await import('../utils/db.helper.js');
     await use(DBHelper);
+  },
+
+  discovery: async ({ authenticatedRequest }, use) => {
+    await use(new DataDiscovery(authenticatedRequest));
   }
 });
+
+export { DataDiscovery };
 
 export const expect = base.expect;

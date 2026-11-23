@@ -1,22 +1,45 @@
-import { test, expect } from "../../src/fixtures/baseTest.js";
+import { test, expect, getOrFetchToken } from "../../src/fixtures/baseTest.js";
 import { AQ201Page, AQ201GachaLimitedPage, GachaLimitedPage } from "../../src/pages/AQ201Page.js";
 import { AQ201API, AQ201GachaLimitedAPI, GachaLimitedAPI } from "../../src/api/AQ201API.js";
 import { aq201Data, gachaLimitedData } from "../../src/test-data/aq201Data.js";
 import { apiAq201Data, apiGachaLimitedData } from "../../src/test-data/apiAq201Data.js";
 import { HTTP_STATUS_CODE } from "../../src/utils/constants.js";
-import { ENDPOINTS, getUiSessionFile } from "../../src/config/endpoint.js";
+import { ENDPOINTS, getUiSessionFile, getApiBaseUrl } from "../../src/config/endpoint.js";
 
 test.describe.serial("E2E Limited Gacha Management (期間限定アバターガチャ)", () => {
   let sharedPage;
   let gachaLimitedPage;
   let gachaLimitedApi;
 
-  const modelId = apiGachaLimitedData.defaultModelId;
-  const packageId = apiGachaLimitedData.defaultPackageId;
-  const limitedGachaUrl = gachaLimitedData.urls.detailPage(modelId);
+  let modelId = apiGachaLimitedData.defaultModelId;
+  let packageId = apiGachaLimitedData.defaultPackageId;
+  let limitedGachaUrl = gachaLimitedData.urls.detailPage(modelId);
 
-  test.beforeAll(async ({ browser }) => {
+  test.beforeAll(async ({ browser, playwright }) => {
     test.setTimeout(gachaLimitedData.timeouts.suiteTimeout);
+
+    try {
+      const access_token = await getOrFetchToken(playwright);
+      const rawContext = await playwright.request.newContext({
+        baseURL: getApiBaseUrl(),
+        extraHTTPHeaders: { Authorization: `Bearer ${access_token}` },
+        httpCredentials: process.env.BASIC_AUTH_USER
+          ? {
+              username: process.env.BASIC_AUTH_USER,
+              password: process.env.BASIC_AUTH_PASS,
+            }
+          : undefined,
+      });
+      const api = new GachaLimitedAPI(rawContext);
+      const target = await api.discoverRandomTarget();
+      modelId = target.modelId;
+      packageId = target.packageId;
+      await rawContext.dispose();
+    } catch {
+      // Giữ giá trị fallback mặc định nếu API discovery thất bại
+    }
+
+    limitedGachaUrl = gachaLimitedData.urls.detailPage(modelId);
 
     const context = await browser.newContext({
       baseURL: process.env.UI_BASE_URL,

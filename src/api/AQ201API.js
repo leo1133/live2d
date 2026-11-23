@@ -1,4 +1,5 @@
 import { ENDPOINTS, getApiBaseUrl } from "../config/endpoint.js";
+import { DataDiscovery } from "../utils/dataDiscovery.js";
 
 export class AQ201API {
   /**
@@ -111,6 +112,19 @@ export class AQ201API {
   async getSubModelList({ packageId, queryParams = { type: 2 }, headers = {}, method = "GET" } = {}) {
     const url = `${this.baseUrl}${ENDPOINTS.GACHA_LIMITED.SUB_MODEL_LIST(packageId)}`;
     return await this._request(url, { method, queryParams, headers });
+  }
+
+  /**
+   * Tự động phát hiện ngẫu nhiên 1 bộ target (modelId, packageId, itemId) hợp lệ từ API
+   * Sử dụng DataDiscovery dùng chung.
+   * @param {Object} [options]
+   * @param {boolean} [options.random=true] Chọn ngẫu nhiên thay vì lấy phần tử đầu tiên
+   * @param {boolean} [options.forceRefresh=false] Bỏ qua cache nội bộ
+   * @returns {Promise<{ modelId: number, packageId: number, itemId: number }>}
+   */
+  async discoverRandomTarget({ random = true, forceRefresh = false } = {}) {
+    const discovery = new DataDiscovery(this.request);
+    return await discovery.getRandomLimitedGachaTarget({ random, forceRefresh });
   }
 }
 
