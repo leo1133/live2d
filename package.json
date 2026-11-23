@@ -18,6 +18,8 @@
     "test": "npx playwright test",
     "test:dev": "ENV=dev npx playwright test",
     "test:stg": "ENV=staging npx playwright test",
+    "test:smoke": "ENV=dev npx playwright test tests/api/aa000.api.spec.js tests/ui/aa000.ui.spec.js tests/ui/ad100.ui.spec.js",
+    "test:detect": "node scripts/detect-pr-tests.js",
     "test:ui:dev": "ENV=dev npx playwright test --ui",
     "test:ui:stg": "ENV=staging npx playwright test --ui",
     "test:aa000": "ENV=dev npx playwright test tests/**/aa000.*.spec.js",
