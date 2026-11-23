@@ -9,16 +9,22 @@ import { HTTP_STATUS_CODE } from "../../src/utils/constants.js";
  * Bộ kiểm thử Tự động hóa Backend API cho màn hình AD301_Agency Information
  * Bao phủ 100% (91/91) Ca Kiểm Thử từ Bộ 419 Viewpoints (GET, PATCH, DELETE, Verify Email)
  * Tuân thủ Rule 03 (API Testing) & Rule 05 Section 5.5 (Data-Driven Testing)
- * Áp dụng Định hướng 1: Tạo Agency tạm thời (Ephemeral / Disposable Agency) để thực thi
- * các ca kiểm thử DELETE, bảo vệ tuyệt đối toàn bộ dữ liệu Agency có sẵn trong Database.
+ *
+ * CHU TRÌNH VÒNG ĐỜI DỮ LIỆU ĐẦY ĐỦ (FULL CRUD LIFECYCLE):
+ * 1. TẠO MỚI (Create): Tự động tạo 1 Agency tạm thời (Ephemeral Agency) dùng xuyên suốt suite.
+ * 2. XEM (Read/View - GET): Thực thi kiểm tra chi tiết trên chính Agency vừa tạo (Cases 1 - 32).
+ * 3. SỬA (Update/Edit - PATCH): Thực thi kiểm tra chỉnh sửa/cập nhật trên chính Agency này (Cases 33 - 75).
+ * 4. XÓA (Delete - DELETE): Ca [AD301-API-80] DEL-001 xóa mềm chính Agency này, các ca sau (DEL-002, DEL-003)
+ *    kiểm tra tính toàn vẹn tài nguyên đã xóa (404 Not Found, Idempotency).
+ * 5. DỌN DẸP (afterAll): Thu dọn triệt để mọi tài nguyên tạm phát sinh, bảo vệ 100% Database thật.
  */
 
 // Bộ nhớ theo dõi các Agency tạm thời tạo ra trong quá trình test
 const createdEphemeralAgencyIds = new Set();
-let deletedEphemeralAgencyId = null;
+const deletedAgencyIds = new Set();
 
 /**
- * Helper tạo mới một Agency tạm thời (Ephemeral/Disposable) dùng riêng cho các ca kiểm thử xóa
+ * Helper tạo mới một Agency tạm thời (Ephemeral/Disposable) dùng cho chu trình kiểm thử CRUD
  * @param {import('../../src/fixtures/baseTest.js').CustomApiClient} request
  * @returns {Promise<number|null>} ID của Agency tạm vừa tạo
  */
@@ -28,9 +34,9 @@ async function createEphemeralAgency(request) {
   const randomSuffix = Math.floor(Math.random() * 1000);
   const ephemeralPayload = {
     ...apiAd200Data.validPayload,
-    name: `Del_${timestamp}`.slice(0, 20),
-    code: `del${timestamp.toString().slice(-8)}${randomSuffix}`.slice(0, 16),
-    contact_email: `ephemeral_${timestamp}_${randomSuffix}@example.com`,
+    name: `Crud_${timestamp}`.slice(0, 20),
+    code: `crud${timestamp.toString().slice(-8)}${randomSuffix}`.slice(0, 16),
+    contact_email: `ephemeral_crud_${timestamp}_${randomSuffix}@example.com`,
   };
 
   try {
@@ -49,23 +55,38 @@ async function createEphemeralAgency(request) {
 }
 
 test.describe("AD301_Agency Information - Backend API Automation Tests (91 Viewpoints)", () => {
+  // Chạy tuần tự để bảo toàn vòng đời CRUD: Tạo ➔ Xem (GET) ➔ Sửa (PATCH) ➔ Xóa (DELETE)
+  test.describe.configure({ mode: "serial" });
+
   let agencyApi;
-  let activeAgencyId = apiAd301Data.defaultAgencyId;
+  let suiteAgencyId = null;
+  let deletedSuiteAgencyId = null;
+  let fallbackAgencyId = apiAd301Data.defaultAgencyId;
 
   test.beforeEach(async ({ authenticatedRequest, discovery }) => {
     agencyApi = new AD301AgencyAPI(authenticatedRequest);
-    const agency = await discovery.getRandomAgency({ fallbackId: apiAd301Data.defaultAgencyId });
-    if (agency?.id) {
-      activeAgencyId = agency.id;
+
+    // Khởi tạo Agency tạm thời ở đầu chu trình (nếu chưa có và chưa bị xóa)
+    if (!suiteAgencyId && !deletedSuiteAgencyId) {
+      suiteAgencyId = await createEphemeralAgency(authenticatedRequest);
+    }
+
+    // Fallback an toàn nếu môi trường không cho phép tạo agency
+    if (!suiteAgencyId && !deletedSuiteAgencyId) {
+      const agency = await discovery.getRandomAgency({ fallbackId: apiAd301Data.defaultAgencyId });
+      if (agency?.id) {
+        fallbackAgencyId = agency.id;
+      }
     }
   });
 
   test.afterAll(async () => {
-    // Dọn dẹp bất kỳ agency tạm thời nào chưa được giải phóng
+    // Dọn dẹp bất kỳ agency tạm thời nào chưa được giải phóng trong suốt quá trình test
     for (const id of createdEphemeralAgencyIds) {
-      if (id !== deletedEphemeralAgencyId) {
+      if (!deletedAgencyIds.has(id)) {
         try {
           await agencyApi.deleteAgency(id, { method: "DELETE" });
+          deletedAgencyIds.add(id);
         } catch {}
       }
     }
@@ -76,7 +97,8 @@ test.describe("AD301_Agency Information - Backend API Automation Tests (91 Viewp
   // ==========================================
   for (const tc of apiAd301Data.testMatrix) {
     test(`${tc.id} [${tc.vpId}] ${tc.group} - ${tc.title}`, async ({ authenticatedRequest }) => {
-      let targetAgencyId = activeAgencyId;
+      // Mặc định sử dụng Agency của vòng đời CRUD (Tạo ➔ Xem ➔ Sửa ➔ Xóa)
+      let targetAgencyId = suiteAgencyId || deletedSuiteAgencyId || fallbackAgencyId;
       let headers = {};
       let payload = { ...apiAd301Data.validPatchPayload };
 
@@ -111,27 +133,39 @@ test.describe("AD301_Agency Information - Backend API Automation Tests (91 Viewp
       const method = (tc.method || "GET").toUpperCase();
 
       // =========================================================================
-      // ĐỊNH HƯỚNG 1: BẢO VỆ DỮ LIỆU AGENCY BẰNG EPHEMERAL AGENCY CHO CÁC CA DELETE
+      // VÒNG ĐỜI CRUD: HOÀN TẤT THAO TÁC XÓA AGENCY TẠM THỜI
       // =========================================================================
       if (method === "DELETE") {
-        if (tc.vpId === "DEL-001" || tc.vpId === "NFR-001" || tc.vpId === "DEL-006") {
-          // Tạo Agency tạm thời riêng biệt để xóa, bảo toàn tuyệt đối Agency thật
-          const ephemeralId = await createEphemeralAgency(authenticatedRequest);
-          if (ephemeralId) {
-            targetAgencyId = ephemeralId;
-            deletedEphemeralAgencyId = ephemeralId;
+        if (tc.vpId === "DEL-001") {
+          // [AD301-API-80] DEL-001: Xóa chính Agency tạm thời đã được Tạo, Xem (GET) và Sửa (PATCH)
+          if (!suiteAgencyId && !deletedSuiteAgencyId) {
+            suiteAgencyId = await createEphemeralAgency(authenticatedRequest);
+          }
+          if (suiteAgencyId) {
+            targetAgencyId = suiteAgencyId;
+            deletedSuiteAgencyId = suiteAgencyId;
+            deletedAgencyIds.add(suiteAgencyId);
+            suiteAgencyId = null; // Đã giải phóng/xóa khỏi trạng thái active
           }
         } else if (tc.vpId === "DEL-002" || tc.vpId === "DEL-003") {
-          // Kiểm tra trên Agency vừa bị xóa ở DEL-001 (hoặc tạo và xóa ngay agency tạm nếu chạy đơn lẻ)
-          if (!deletedEphemeralAgencyId) {
+          // Kiểm tra trên Agency vừa bị xóa ở DEL-001 (hoặc tạo và xóa ngay nếu chạy đơn lẻ)
+          if (!deletedSuiteAgencyId) {
             const ephemeralId = await createEphemeralAgency(authenticatedRequest);
             if (ephemeralId) {
               await agencyApi.deleteAgency(ephemeralId, { method: "DELETE" });
-              deletedEphemeralAgencyId = ephemeralId;
+              deletedSuiteAgencyId = ephemeralId;
+              deletedAgencyIds.add(ephemeralId);
             }
           }
-          if (deletedEphemeralAgencyId) {
-            targetAgencyId = deletedEphemeralAgencyId;
+          if (deletedSuiteAgencyId) {
+            targetAgencyId = deletedSuiteAgencyId;
+          }
+        } else if (tc.vpId === "DEL-006" || tc.vpId === "NFR-001") {
+          // Các ca kiểm tra xóa thành công độc lập khác: Tạo agency tạm mới để xóa
+          const ephemeralId = await createEphemeralAgency(authenticatedRequest);
+          if (ephemeralId) {
+            targetAgencyId = ephemeralId;
+            deletedAgencyIds.add(ephemeralId);
           }
         }
       }
