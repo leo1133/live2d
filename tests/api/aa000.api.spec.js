@@ -9,6 +9,13 @@ import { METHODS, HTTP_STATUS_CODE } from '../../src/utils/constants.js';
  * Không cần loginPage
  */
 test.describe('API Login Suite: Kiểm tra Server & Security', () => {
+  // Chạy tuần tự để chống rate-limit (HTTP 429) do cơ chế bảo vệ của endpoint Login
+  test.describe.configure({ mode: 'serial' });
+
+  test.beforeEach(async () => {
+    test.setTimeout(60000);
+    await new Promise((r) => setTimeout(r, 600));
+  });
 
   test('Case 19: Login thành công với credentials hợp lệ', async ({ authAPI }) => {
     const response = await authAPI.login(loginData.apiCredentials);

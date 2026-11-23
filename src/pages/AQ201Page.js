@@ -48,8 +48,8 @@ export class AQ201Page {
     });
 
     // Bảng Item trong Gacha
-    this.dataTable = page.getByRole("table");
-    this.tableRows = this.dataTable.locator("tbody tr");
+    this.dataTable = page.locator("table");
+    this.tableRows = page.locator("table tbody tr");
     this.colId = page.getByText(gachaLimitedData.table.columns.id, {
       exact: true,
     });

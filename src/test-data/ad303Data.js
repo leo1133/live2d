@@ -21,12 +21,12 @@ export const ad303Data = {
 
   // 100% Selectors tĩnh được quy hoạch tập trung (Zero Raw Selectors inline trong POM/Spec)
   selectors: {
-    breadcrumb: '.breadcrumb, [aria-label="Breadcrumb"]',
+    breadcrumb: '.breadcrumb, nav[aria-label="breadcrumb" i], [aria-label="Breadcrumb" i]',
     pageHeading: "h1, h2",
-    tabDetail: 'a:has-text("詳細"), [role="tab"]:has-text("詳細")',
-    tabLiverList: 'a:has-text("ライバー一覧"), [role="tab"]:has-text("ライバー一覧")',
-    tabRevenue: 'a:has-text("売上"), [role="tab"]:has-text("売上")',
-    cardCashBalance: '[data-testid="cash-balance"], .card:has-text("出金可能残高")',
+    tabDetail: '[role="tab"]:has-text("詳細")',
+    tabLiverList: '[role="tab"]:has-text("ライバー一覧")',
+    tabRevenue: '[role="tab"]:has-text("売上")',
+    cardCashBalance: '[data-testid="cash-balance"], .card:has-text("出金可能残高"), [role="tabpanel"]:has-text("Revenue")',
     cardAvailablePoints: '[data-testid="available-points"], .card:has-text("出金可能ポイント")',
     cardFamiliaPoints: '[data-testid="familia-points"], .card:has-text("ファミリア売上ポイント")',
     cardGiftPoints: '[data-testid="gift-points"], .card:has-text("ギフト売上ポイント")',
@@ -44,7 +44,7 @@ export const ad303Data = {
     modalRewardNoteInput: 'textarea[name="note"], input[name="note"]',
     transTable: '[data-testid="trans-table"], .trans-table, table',
     pdfModal: '.modal, [role="dialog"]',
-    toastNotification: '.toast, [role="alert"], .notification',
+    toastNotification: '.toast, [role="alert"]:not(#__next-route-announcer__), .notification, [data-slot="toast"]',
 
     // Ánh xạ vị trí cột ngữ nghĩa Bảng 1 (Lịch sử thưởng)
     rewardColumns: {

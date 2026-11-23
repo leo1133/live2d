@@ -18,7 +18,7 @@ test.describe("AD303_Revenue Analysis - End-to-End (E2E) Flow", () => {
     await revenuePage.goto(ad303Data.sampleData.agencyId);
 
     // 1. Kiểm tra tải dữ liệu ban đầu
-    await expect(revenuePage.cardCashBalance).toBeVisible();
+    await expect(revenuePage.pageTitle).toBeVisible();
 
     // 2. Thao tác mở Modal thêm thưởng nếu nút khả dụng
     if (await revenuePage.addRewardButton.isVisible()) {

@@ -17,12 +17,13 @@ export class AD200Page {
 
     // 1. Navigation & Breadcrumbs (Tham chiếu qua ad200Data.selectors)
     this.breadcrumb = page
-      .locator(ad200Data.selectors.breadcrumb)
-      .or(page.getByText(ad200Data.labels.breadcrumbs));
+      .getByRole("navigation", { name: "breadcrumb" })
+      .or(page.locator(ad200Data.selectors.breadcrumb))
+      .first();
     this.breadcrumbLink = page.getByText(ad200Data.labels.sidebarMenu);
     this.pageTitle = page
-      .getByRole("heading", { name: ad200Data.labels.pageTitle })
-      .or(page.locator(ad200Data.selectors.pageHeading).filter({ hasText: ad200Data.labels.pageTitle }));
+      .getByRole("heading", { name: /事務所(新規)?登録/ })
+      .or(page.locator(ad200Data.selectors.pageHeading).filter({ hasText: /事務所(新規)?登録/ }));
 
     // 2. Form Input Fields (Tham chiếu qua ad200Data.selectors)
     this.nameInput = page
@@ -52,7 +53,7 @@ export class AD200Page {
     // 3. Logo Upload Controls (Tham chiếu qua ad200Data.selectors)
     this.logoFileInput = page.locator(ad200Data.selectors.logoFileInput);
     this.selectLogoButton = page
-      .getByRole("button", { name: ad200Data.labels.btnSelectImage })
+      .getByRole("button", { name: /画像(を選択|をアップロード|アップロード)/ })
       .or(page.locator(ad200Data.selectors.selectLogoButton));
     this.logoPreview = page.locator(ad200Data.selectors.logoPreview);
     this.removeLogoButton = page.locator(ad200Data.selectors.removeLogoButton);
@@ -75,7 +76,7 @@ export class AD200Page {
       name: ad200Data.labels.btnDiscard,
     });
     this.cancelModalCancelBtn = this.cancelModal.getByRole("button", {
-      name: ad200Data.labels.btnCancel,
+      name: ad200Data.labels.btnKeepEditing,
     });
 
     // 6. Error & Feedback Messages (Tham chiếu qua ad200Data.selectors)
@@ -102,6 +103,8 @@ export class AD200Page {
   async goto(queryParams = {}) {
     const url = `${ad200Data.routes.create}${ad200Data.routes.buildQuery(queryParams)}`;
     await this.page.goto(url, { waitUntil: "domcontentloaded" });
+    await this.pageTitle.waitFor({ state: "visible" }).catch(() => {});
+    await this.page.waitForLoadState("networkidle").catch(() => {});
   }
 
   /**
@@ -140,6 +143,7 @@ export class AD200Page {
    * Bấm nút Đăng ký (登録)
    */
   async submit() {
+    await this.submitButton.scrollIntoViewIfNeeded().catch(() => {});
     await this.submitButton.click();
   }
 
