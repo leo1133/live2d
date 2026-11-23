@@ -25,6 +25,7 @@ on:
         type: choice
         options:
           - all
+          - smoke
           - ad100
           - api
           - ui
@@ -55,8 +56,10 @@ jobs:
     environment: ${{ inputs.environment || 'dev' }}
 
     steps:
-      - name: Checkout code
+      - name: Checkout code (Full history for diff)
         uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
 
       - name: Setup Node.js 20
         uses: actions/setup-node@v4
@@ -64,10 +67,42 @@ jobs:
           node-version: 20
           cache: 'npm'
 
+      - name: Detect Test Scope (Smart PR Testing)
+        id: detect
+        run: |
+          if [ "${{ github.event_name }}" = "pull_request" ]; then
+            echo "🔍 Đang phân tích git diff cho Pull Request (Base: origin/${{ github.base_ref || 'main' }})..."
+            node scripts/detect-pr-tests.js "origin/${{ github.base_ref || 'main' }}"
+          elif [ "${{ github.event_name }}" = "push" ]; then
+            echo "📌 Sự kiện Push lên nhánh: ${{ github.ref_name }} -> Chạy Smoke Test xác nhận"
+            echo "test_mode=SMOKE" >> $GITHUB_OUTPUT
+            echo "test_files=tests/api/aa000.api.spec.js tests/ui/aa000.ui.spec.js tests/ui/ad100.ui.spec.js" >> $GITHUB_OUTPUT
+          elif [ "${{ github.event_name }}" = "schedule" ]; then
+            echo "🌙 Lịch Nightly Build: Chạy toàn bộ 1.040+ test..."
+            echo "test_mode=ALL" >> $GITHUB_OUTPUT
+            echo "test_files=all" >> $GITHUB_OUTPUT
+          else
+            # workflow_dispatch
+            SELECTED_SUITE="${{ inputs.test_suite || 'all' }}"
+            echo "🎯 Chạy thủ công: $SELECTED_SUITE"
+            if [ "$SELECTED_SUITE" = "smoke" ]; then
+              echo "test_mode=SMOKE" >> $GITHUB_OUTPUT
+              echo "test_files=tests/api/aa000.api.spec.js tests/ui/aa000.ui.spec.js tests/ui/ad100.ui.spec.js" >> $GITHUB_OUTPUT
+            elif [ "$SELECTED_SUITE" = "all" ]; then
+              echo "test_mode=ALL" >> $GITHUB_OUTPUT
+              echo "test_files=all" >> $GITHUB_OUTPUT
+            else
+              echo "test_mode=DISPATCH" >> $GITHUB_OUTPUT
+              echo "test_files=$SELECTED_SUITE" >> $GITHUB_OUTPUT
+            fi
+          fi
+
       - name: Install Dependencies
+        if: steps.detect.outputs.test_mode != 'SKIP'
         run: npm ci
 
       - name: Cache Playwright Browsers
+        if: steps.detect.outputs.test_mode != 'SKIP'
         id: playwright-cache
         uses: actions/cache@v4
         with:
@@ -75,14 +110,15 @@ jobs:
           key: ${{ runner.os }}-playwright-${{ hashFiles('package-lock.json') }}
 
       - name: Install Playwright Chromium (Binary & OS Deps)
-        if: steps.playwright-cache.outputs.cache-hit != 'true'
+        if: steps.detect.outputs.test_mode != 'SKIP' && steps.playwright-cache.outputs.cache-hit != 'true'
         run: npx playwright install --with-deps chromium
 
       - name: Install OS Dependencies only (when cache hit)
-        if: steps.playwright-cache.outputs.cache-hit == 'true'
+        if: steps.detect.outputs.test_mode != 'SKIP' && steps.playwright-cache.outputs.cache-hit == 'true'
         run: npx playwright install-deps chromium
 
       - name: Generate .env.${{ inputs.environment || 'dev' }} file from Secrets
+        if: steps.detect.outputs.test_mode != 'SKIP'
         env:
           TARGET_ENV: ${{ inputs.environment || 'dev' }}
           UI_BASE_URL: ${{ secrets.UI_BASE_URL }}
@@ -118,6 +154,7 @@ jobs:
           echo "✅ Đã tạo file cấu hình $ENV_FILE thành công."
 
       - name: Pre-flight Backend Health Check
+        if: steps.detect.outputs.test_mode != 'SKIP'
         env:
           TARGET_ENV: ${{ inputs.environment || 'dev' }}
         run: |
@@ -136,56 +173,57 @@ jobs:
           ENV: ${{ inputs.environment || 'dev' }}
           WORKERS: ${{ inputs.workers || '2' }}
           CI: true
+          TEST_MODE: ${{ steps.detect.outputs.test_mode }}
+          TEST_FILES: ${{ steps.detect.outputs.test_files }}
         run: |
-          SUITE="${{ inputs.test_suite }}"
-          # Tự động nhận diện phạm vi test nếu chạy qua Pull Request
-          if [ -z "$SUITE" ]; then
-            BRANCH_REF="${{ github.head_ref || github.ref_name }}"
-            echo "📌 Nhánh thực thi: $BRANCH_REF"
-            if [[ "$BRANCH_REF" =~ "ad100" ]]; then
-              SUITE="ad100"
-            elif [[ "$BRANCH_REF" =~ "gacha" || "$BRANCH_REF" =~ "aq201" ]]; then
-              SUITE="gacha-limited"
-            elif [[ "$BRANCH_REF" =~ "aa000" ]]; then
-              SUITE="smoke-aa000"
-            elif [[ "$BRANCH_REF" =~ "docs" || "$BRANCH_REF" =~ "documentation" || "$BRANCH_REF" =~ "ci" ]]; then
-              SUITE="ad100"
-            else
-              SUITE="all"
-            fi
-          fi
-
-          echo "🚀 Bắt đầu thực thi: Suite [$SUITE] trên Môi trường [$ENV] (Fail-Fast limit: 5)..."
           FAIL_FAST_FLAG="--max-failures=5"
 
-          case "$SUITE" in
-            ad100)
-              echo "🎯 Chạy riêng bộ kiểm thử AD100..."
-              ENV=$ENV npx playwright test tests/**/ad100.*.spec.js $FAIL_FAST_FLAG
-              ;;
-            api)
-              ENV=$ENV npx playwright test tests/api $FAIL_FAST_FLAG
-              ;;
-            ui)
-              ENV=$ENV npx playwright test tests/ui $FAIL_FAST_FLAG
-              ;;
-            e2e)
-              ENV=$ENV npx playwright test tests/e2e $FAIL_FAST_FLAG
-              ;;
-            smoke-aa000)
-              ENV=$ENV npx playwright test tests/**/aa000.*.spec.js $FAIL_FAST_FLAG
-              ;;
-            gacha-limited)
-              ENV=$ENV npx playwright test tests/ui/aq201.ui.spec.js $FAIL_FAST_FLAG
-              ;;
-            *)
-              ENV=$ENV npx playwright test $FAIL_FAST_FLAG
-              ;;
-          esac
+          if [ "$TEST_MODE" = "SKIP" ]; then
+            echo "⏩ [SKIP] Nhánh này chỉ sửa tài liệu / hình ảnh / meta. Bỏ qua chạy test để tiết kiệm thời gian!"
+            exit 0
+          fi
+
+          if [ "$TEST_MODE" = "TARGETED" ] || [ "$TEST_MODE" = "SMOKE" ]; then
+            echo "🎯 [${TEST_MODE}] Đang thực thi các file test được chọn lọc:"
+            echo "$TEST_FILES"
+            ENV=$ENV npx playwright test $TEST_FILES $FAIL_FAST_FLAG
+            exit 0
+          fi
+
+          if [ "$TEST_MODE" = "DISPATCH" ]; then
+            case "$TEST_FILES" in
+              ad100)
+                ENV=$ENV npx playwright test tests/**/ad100.*.spec.js $FAIL_FAST_FLAG
+                ;;
+              api)
+                ENV=$ENV npx playwright test tests/api $FAIL_FAST_FLAG
+                ;;
+              ui)
+                ENV=$ENV npx playwright test tests/ui $FAIL_FAST_FLAG
+                ;;
+              e2e)
+                ENV=$ENV npx playwright test tests/e2e $FAIL_FAST_FLAG
+                ;;
+              smoke-aa000)
+                ENV=$ENV npx playwright test tests/**/aa000.*.spec.js $FAIL_FAST_FLAG
+                ;;
+              gacha-limited)
+                ENV=$ENV npx playwright test tests/ui/aq201.ui.spec.js $FAIL_FAST_FLAG
+                ;;
+              *)
+                ENV=$ENV npx playwright test $FAIL_FAST_FLAG
+                ;;
+            esac
+            exit 0
+          fi
+
+          # Mặc định: Mode ALL (Nightly Build)
+          echo "🌙 [ALL] Đang thực thi TOÀN BỘ Test Suite (Nightly Build)..."
+          ENV=$ENV npx playwright test $FAIL_FAST_FLAG
 
       - name: Upload HTML Test Report Artifact
         uses: actions/upload-artifact@v4
-        if: always()
+        if: always() && steps.detect.outputs.test_mode != 'SKIP'
         with:
           name: playwright-report-${{ inputs.environment || 'dev' }}-${{ github.run_id }}
           path: playwright-report/
@@ -193,7 +231,7 @@ jobs:
 
       - name: Upload Traces & Failure Evidence
         uses: actions/upload-artifact@v4
-        if: failure()
+        if: failure() && steps.detect.outputs.test_mode != 'SKIP'
         with:
           name: test-failure-evidence-${{ github.run_id }}
           path: |
