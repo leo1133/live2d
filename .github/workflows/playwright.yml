@@ -92,7 +92,7 @@ jobs:
           ADMIN_EMAIL: ${{ secrets.ADMIN_EMAIL }}
           ADMIN_ID: ${{ secrets.ADMIN_ID }}
           ADMIN_PASSWORD: ${{ secrets.ADMIN_PASSWORD }}
-          LOGIN_TYPE: ${{ secrets.LOGIN_TYPE || 'email' }}
+          LOGIN_TYPE: ${{ secrets.LOGIN_TYPE || '1' }}
           DB_HOST: ${{ secrets.DB_HOST }}
           DB_PORT: ${{ secrets.DB_PORT || '5432' }}
           DB_NAME: ${{ secrets.DB_NAME }}
@@ -148,6 +148,8 @@ jobs:
               SUITE="gacha-limited"
             elif [[ "$BRANCH_REF" =~ "aa000" ]]; then
               SUITE="smoke-aa000"
+            elif [[ "$BRANCH_REF" =~ "docs" || "$BRANCH_REF" =~ "documentation" || "$BRANCH_REF" =~ "ci" ]]; then
+              SUITE="ad100"
             else
               SUITE="all"
             fi

@@ -19,9 +19,11 @@ export class CustomApiClient {
 
   async handleRequest(requestFn) {
     let response = await requestFn();
+    let retries = 0;
     // Tự động thử lại nếu gặp lỗi mạng tạm thời hoặc rate-limit (429/502/503/504)
-    if ([429, 502, 503, 504].includes(response.status())) {
-      const waitTime = response.status() === 429 ? 1500 : 800;
+    while ([429, 502, 503, 504].includes(response.status()) && retries < 3) {
+      retries++;
+      const waitTime = response.status() === 429 ? 2000 : 800;
       await new Promise((resolve) => setTimeout(resolve, waitTime));
       response = await requestFn();
     }
@@ -127,13 +129,28 @@ export async function getOrFetchToken(playwright) {
   }
 
   // 4. Full Login
-  const response = await requestContext.post(ENDPOINTS.AUTH.LOGIN, {
-    data: {
-      email_user_id: process.env.ADMIN_EMAIL || process.env.ADMIN_ID,
-      password: process.env.ADMIN_PASSWORD,
-      login_type: process.env.LOGIN_TYPE ? parseInt(process.env.LOGIN_TYPE, 10) : 1,
-    },
+  const loginPayload = {
+    email_user_id: process.env.ADMIN_EMAIL || process.env.ADMIN_ID,
+    password: process.env.ADMIN_PASSWORD,
+    login_type:
+      process.env.LOGIN_TYPE && !isNaN(parseInt(process.env.LOGIN_TYPE, 10))
+        ? parseInt(process.env.LOGIN_TYPE, 10)
+        : 1,
+  };
+
+  let response = await requestContext.post(ENDPOINTS.AUTH.LOGIN, {
+    data: loginPayload,
   });
+
+  let retries = 0;
+  while ([429, 502, 503, 504].includes(response.status()) && retries < 3) {
+    retries++;
+    const waitTime = response.status() === 429 ? 2000 : 800;
+    await new Promise((resolve) => setTimeout(resolve, waitTime));
+    response = await requestContext.post(ENDPOINTS.AUTH.LOGIN, {
+      data: loginPayload,
+    });
+  }
 
   if (response.status() !== 200) {
     await requestContext.dispose();
@@ -165,7 +182,8 @@ export const test = base.extend({
           }
         : undefined,
     });
-    await use(new AuthAPI(standaloneContext));
+    const client = new CustomApiClient(standaloneContext, false);
+    await use(new AuthAPI(client));
     await standaloneContext.dispose();
   },
 
