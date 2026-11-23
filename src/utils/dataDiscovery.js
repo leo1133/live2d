@@ -1,4 +1,26 @@
 import { ENDPOINTS, getApiBaseUrl } from "../config/endpoint.js";
+import { HTTP_STATUS_CODE, METHODS } from "./constants.js";
+import { apiGachaLimitedData } from "../test-data/apiAq201Data.js";
+
+/**
+ * Giá trị ID fallback mặc định khi không tìm thấy entity nào và không truyền fallback cụ thể
+ */
+const DEFAULT_FALLBACK_ID = 1;
+
+/**
+ * Phân trang mặc định khi gọi API khám phá dữ liệu (lấy kích thước đủ lớn để bốc ngẫu nhiên)
+ */
+const DEFAULT_PAGING_PARAMS = Object.freeze({
+  page: 1,
+  items_per_page: 50,
+});
+
+/**
+ * Định danh cache cho các target đặc thù
+ */
+const CACHE_KEYS = Object.freeze({
+  LIMITED_GACHA_TARGET: "target:limited_gacha",
+});
 
 /**
  * Bộ nhớ đệm cấp Worker (RAM) giúp tránh gọi API lặp lại trong cùng tiến trình test
@@ -19,9 +41,16 @@ export class DataDiscovery {
   }
 
   /**
+   * Xóa toàn bộ bộ nhớ đệm khám phá dữ liệu (nếu cần làm mới giữa các test suite)
+   */
+  static clearCache() {
+    discoveryMemoryCache.clear();
+  }
+
+  /**
    * Helper dispatch HTTP request an toàn
    */
-  async _sendRequest(url, { method = "GET", queryParams = {}, headers = {}, data } = {}) {
+  async _sendRequest(url, { method = METHODS.GET, queryParams = {}, headers = {}, data } = {}) {
     const options = {
       headers,
       params: queryParams,
@@ -32,15 +61,15 @@ export class DataDiscovery {
 
     const httpMethod = method.toUpperCase();
     switch (httpMethod) {
-      case "GET":
+      case METHODS.GET:
         return await this.request.get(url, options);
-      case "POST":
+      case METHODS.POST:
         return await this.request.post(url, options);
-      case "PUT":
+      case METHODS.PUT:
         return await this.request.put(url, options);
-      case "PATCH":
+      case METHODS.PATCH:
         return await this.request.patch(url, options);
-      case "DELETE":
+      case METHODS.DELETE:
         return await this.request.delete(url, options);
       default:
         return await this.request.fetch(url, {
@@ -55,8 +84,8 @@ export class DataDiscovery {
    */
   async fetchEntityList({
     endpoint,
-    method = "GET",
-    queryParams = { page: 1, items_per_page: 50 },
+    method = METHODS.GET,
+    queryParams = DEFAULT_PAGING_PARAMS,
     payload = null,
     headers = {},
     forceRefresh = false,
@@ -76,7 +105,7 @@ export class DataDiscovery {
         data: payload,
       });
 
-      if (response.status() === 200) {
+      if (response.status() === HTTP_STATUS_CODE.OK) {
         const body = await response.json();
         let items = [];
 
@@ -103,12 +132,12 @@ export class DataDiscovery {
    */
   async getRandomEntity({
     endpoint,
-    method = "GET",
-    queryParams = { page: 1, items_per_page: 50 },
+    method = METHODS.GET,
+    queryParams = DEFAULT_PAGING_PARAMS,
     payload = null,
     headers = {},
     filterFn = null,
-    fallback = { id: 1 },
+    fallback = { id: DEFAULT_FALLBACK_ID },
     random = true,
     forceRefresh = false,
   } = {}) {
@@ -139,7 +168,7 @@ export class DataDiscovery {
    */
   async getRandomId(options = {}) {
     const entity = await this.getRandomEntity(options);
-    return entity?.id ?? (options.fallback?.id || 1);
+    return entity?.id ?? (options.fallback?.id || DEFAULT_FALLBACK_ID);
   }
 
   // =========================================================================
@@ -149,14 +178,14 @@ export class DataDiscovery {
   /**
    * Bốc ngẫu nhiên 1 User hợp lệ (Màn hình AD100 / User Management)
    */
-  async getRandomUser({ random = true, fallbackId = 1, forceRefresh = false } = {}) {
+  async getRandomUser({ random = true, fallbackId = DEFAULT_FALLBACK_ID, forceRefresh = false } = {}) {
     const envOverride = process.env.TARGET_USER_ID || process.env.USER_ID;
     if (envOverride) return { id: Number(envOverride) };
 
     return await this.getRandomEntity({
       endpoint: ENDPOINTS.USER.GET_LIST,
-      method: "GET",
-      queryParams: { page: 1, items_per_page: 50 },
+      method: METHODS.GET,
+      queryParams: DEFAULT_PAGING_PARAMS,
       fallback: { id: fallbackId },
       random,
       forceRefresh,
@@ -166,14 +195,14 @@ export class DataDiscovery {
   /**
    * Bốc ngẫu nhiên 1 Agency hợp lệ (Màn hình AD100/AD301 / Agency Management)
    */
-  async getRandomAgency({ random = true, fallbackId = 1, forceRefresh = false } = {}) {
+  async getRandomAgency({ random = true, fallbackId = DEFAULT_FALLBACK_ID, forceRefresh = false } = {}) {
     const envOverride = process.env.TARGET_AGENCY_ID || process.env.AGENCY_ID;
     if (envOverride) return { id: Number(envOverride) };
 
     return await this.getRandomEntity({
       endpoint: ENDPOINTS.AGENCY.GET_LIST,
-      method: "POST",
-      payload: { page: 1, items_per_page: 50 },
+      method: METHODS.POST,
+      payload: DEFAULT_PAGING_PARAMS,
       fallback: { id: fallbackId },
       random,
       forceRefresh,
@@ -183,14 +212,18 @@ export class DataDiscovery {
   /**
    * Bốc ngẫu nhiên 1 Model 3D Gacha (Màn hình AQ100 / Gacha List)
    */
-  async getRandomGachaModel({ random = true, fallbackId = 45, forceRefresh = false } = {}) {
+  async getRandomGachaModel({
+    random = true,
+    fallbackId = apiGachaLimitedData.defaultModelId,
+    forceRefresh = false,
+  } = {}) {
     const envOverride = process.env.TARGET_MODEL_ID || process.env.MODEL_ID;
     if (envOverride) return { id: Number(envOverride) };
 
     return await this.getRandomEntity({
       endpoint: ENDPOINTS.GACHA.GET_LIST,
-      method: "GET",
-      queryParams: { page: 1, items_per_page: 50 },
+      method: METHODS.GET,
+      queryParams: DEFAULT_PAGING_PARAMS,
       fallback: { id: fallbackId },
       random,
       forceRefresh,
@@ -201,7 +234,7 @@ export class DataDiscovery {
    * Bốc ngẫu nhiên 1 bộ target Gacha Limited gồm: modelId, packageId, itemId (Màn hình AQ201)
    */
   async getRandomLimitedGachaTarget({ random = true, forceRefresh = false } = {}) {
-    const cacheKey = "target:limited_gacha";
+    const cacheKey = CACHE_KEYS.LIMITED_GACHA_TARGET;
     if (!forceRefresh && discoveryMemoryCache.has(cacheKey)) {
       return discoveryMemoryCache.get(cacheKey);
     }
@@ -219,8 +252,8 @@ export class DataDiscovery {
     try {
       const models = await this.fetchEntityList({
         endpoint: ENDPOINTS.GACHA.GET_LIST,
-        method: "GET",
-        queryParams: { page: 1, items_per_page: 50 },
+        method: METHODS.GET,
+        queryParams: DEFAULT_PAGING_PARAMS,
         forceRefresh,
       });
 
@@ -241,22 +274,22 @@ export class DataDiscovery {
       for (const m of modelCandidates) {
         const pkgUrl = `${this.baseUrl}${ENDPOINTS.GACHA_LIMITED.PACKAGE_DETAIL(m.id)}`;
         const pkgRes = await this._sendRequest(pkgUrl, {
-          method: "GET",
-          queryParams: { type: 2 },
+          method: METHODS.GET,
+          queryParams: { type: apiGachaLimitedData.packageTypes.LIMITED },
         });
 
-        if (pkgRes.status() === 200) {
+        if (pkgRes.status() === HTTP_STATUS_CODE.OK) {
           const pkg = await pkgRes.json();
           const foundPackageId = pkg.id;
 
           const itemsUrl = `${this.baseUrl}${ENDPOINTS.GACHA_LIMITED.PACKAGE_ITEMS(foundPackageId)}`;
           const itemsRes = await this._sendRequest(itemsUrl, {
-            method: "GET",
-            queryParams: { page: 1, items_per_page: 50 },
+            method: METHODS.GET,
+            queryParams: DEFAULT_PAGING_PARAMS,
           });
 
           let foundItemId = null;
-          if (itemsRes.status() === 200) {
+          if (itemsRes.status() === HTTP_STATUS_CODE.OK) {
             const itemsData = await itemsRes.json();
             const items = Array.isArray(itemsData.data) ? itemsData.data : [];
             if (items.length > 0) {
@@ -280,9 +313,9 @@ export class DataDiscovery {
     }
 
     const fallbackResult = {
-      modelId: envModel || 45,
-      packageId: envPackage || 53,
-      itemId: envItem || 133,
+      modelId: envModel || apiGachaLimitedData.defaultModelId,
+      packageId: envPackage || apiGachaLimitedData.defaultPackageId,
+      itemId: envItem || apiGachaLimitedData.defaultItemId,
     };
     discoveryMemoryCache.set(cacheKey, fallbackResult);
     return fallbackResult;
