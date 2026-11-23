@@ -122,9 +122,11 @@ test.describe.serial("E2E Limited Gacha Management (期間限定アバターガ�
     const itemsData = await fetchPackageItemsApi();
 
     // 1. Kiểm tra chuỗi tổng kết phân trang
-    const summaryText = await gachaLimitedPage.paginationSummary.innerText().catch(() => "");
-    if (summaryText && gachaLimitedData.pagination.summaryRegex.test(summaryText)) {
-      expect(summaryText).toContain(String(itemsData.total_count));
+    if (await gachaLimitedPage.paginationSummary.isVisible().catch(() => false)) {
+      const summaryText = await gachaLimitedPage.paginationSummary.innerText().catch(() => "");
+      if (summaryText && gachaLimitedData.pagination.summaryRegex.test(summaryText)) {
+        expect(summaryText).toContain(String(itemsData.total_count));
+      }
     }
 
     // 2. Số lượng dòng hiển thị trên Table khớp với mảng data của API

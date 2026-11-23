@@ -103,6 +103,8 @@ export class AD200Page {
   async goto(queryParams = {}) {
     const url = `${ad200Data.routes.create}${ad200Data.routes.buildQuery(queryParams)}`;
     await this.page.goto(url, { waitUntil: "domcontentloaded" });
+    await this.pageTitle.waitFor({ state: "visible" }).catch(() => {});
+    await this.page.waitForLoadState("networkidle").catch(() => {});
   }
 
   /**
@@ -141,6 +143,7 @@ export class AD200Page {
    * Bấm nút Đăng ký (登録)
    */
   async submit() {
+    await this.submitButton.scrollIntoViewIfNeeded().catch(() => {});
     await this.submitButton.click();
   }
 

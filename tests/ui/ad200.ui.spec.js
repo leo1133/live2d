@@ -49,6 +49,7 @@ test.describe.serial("UI AD200: Register Agency (事務所新規登録)", () => 
     test("[AD200-4] Kiểm tra Screen Lifecycle khi F5 Reload trang", async () => {
       await createPage.nameInput.fill("Temporary Text");
       await sharedPage.reload({ waitUntil: "domcontentloaded" });
+      await sharedPage.waitForLoadState("networkidle").catch(() => {});
       await expect(createPage.pageTitle).toBeVisible();
       await expect(createPage.nameInput).toBeVisible();
     });

@@ -264,16 +264,15 @@ export class DataDiscovery {
                 ? items[Math.floor(Math.random() * items.length)]
                 : items[0];
               foundItemId = picked.id;
+              const targetResult = {
+                modelId: envModel || m.id,
+                packageId: envPackage || foundPackageId,
+                itemId: envItem || foundItemId,
+              };
+              discoveryMemoryCache.set(cacheKey, targetResult);
+              return targetResult;
             }
           }
-
-          const targetResult = {
-            modelId: envModel || m.id,
-            packageId: envPackage || foundPackageId,
-            itemId: envItem || foundItemId || 133,
-          };
-          discoveryMemoryCache.set(cacheKey, targetResult);
-          return targetResult;
         }
       }
     } catch (err) {
