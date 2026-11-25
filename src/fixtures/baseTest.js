@@ -154,9 +154,14 @@ export async function getOrFetchToken(playwright) {
   }
 
   // 4. Full Login
+  const loginPassword =
+    getEnv() === "dev" && (!process.env.ADMIN_PASSWORD || process.env.ADMIN_PASSWORD === "!Ch4ng3Th1sP4ssW0rd!")
+      ? "!Ch4ng3Th1sP4ssW0rd!1"
+      : process.env.ADMIN_PASSWORD;
+
   const loginPayload = {
     email_user_id: process.env.ADMIN_EMAIL || process.env.ADMIN_ID,
-    password: process.env.ADMIN_PASSWORD,
+    password: loginPassword,
     login_type:
       process.env.LOGIN_TYPE && !isNaN(parseInt(process.env.LOGIN_TYPE, 10))
         ? parseInt(process.env.LOGIN_TYPE, 10)
