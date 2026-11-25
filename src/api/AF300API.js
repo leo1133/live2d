@@ -1,7 +1,7 @@
 import { ENDPOINTS, getApiBaseUrl } from "../config/endpoint.js";
 
 /**
- * API Client cho AF300 (GET/PUT/PATCH/DELETE /gifts/:id)
+ * API Client cho AF300 (GET/PATCH/DELETE /gift/{gift_id}/)
  */
 export class AF300API {
   constructor(request) {
@@ -9,25 +9,26 @@ export class AF300API {
     this.baseUrl = getApiBaseUrl();
   }
 
-  async getGiftDetail(id, { headers = {} } = {}) {
-    return this.request.get(`${this.baseUrl}${ENDPOINTS.GIFT.DETAIL(id)}`, { headers });
+  async getGiftDetail(id, { method = "GET", headers = {} } = {}) {
+    const url = `${this.baseUrl}${ENDPOINTS.GIFT.DETAIL(id)}`;
+    const m = method.toUpperCase();
+    if (m === "POST") return this.request.post(url, { headers });
+    return this.request.get(url, { headers });
   }
 
-  async updateGift(id, { method = "PUT", payload, headers = {} } = {}) {
+  async updateGift(id, { payload, headers = {} } = {}) {
     const url = `${this.baseUrl}${ENDPOINTS.GIFT.UPDATE(id)}`;
-    const options = { headers };
-    if (payload !== undefined) options.data = payload;
-    return method.toUpperCase() === "PATCH"
-      ? this.request.patch(url, options)
-      : this.request.put(url, options);
+    return this.request.patch(url, { data: payload, headers });
   }
 
   async deleteGift(id, { headers = {} } = {}) {
-    return this.request.delete(`${this.baseUrl}${ENDPOINTS.GIFT.DELETE(id)}`, { headers });
+    const url = `${this.baseUrl}${ENDPOINTS.GIFT.DELETE(id)}`;
+    return this.request.delete(url, { headers });
   }
 
   async deleteCollection({ headers = {} } = {}) {
-    return this.request.delete(`${this.baseUrl}${ENDPOINTS.GIFT.GET_LIST}`, { headers });
+    const url = `${this.baseUrl}${ENDPOINTS.GIFT.GET_LIST}`;
+    return this.request.delete(url, { headers });
   }
 }
 

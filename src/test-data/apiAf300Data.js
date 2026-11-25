@@ -1,37 +1,31 @@
-import { generateRandomNumber, generateRandomString } from "../utils/helpers.js";
-
 /**
- * Data Factory & Viewpoint Matrix cho AF300 (GET/PUT/PATCH/DELETE /gifts/:id)
+ * API Test Data cho AF300 — GET/PATCH/DELETE /gift/{gift_id}/
  */
-export const buildGiftUpdatePayload = (overrides = {}) => ({
-  name: `UpdatedGift_${generateRandomString(6, true)}`,
-  coin_price: generateRandomNumber(20, 800),
-  category_id: Number(process.env.TEST_GIFT_CATEGORY_ID || 1),
-  sort_order: generateRandomNumber(1, 99),
-  status: "active",
-  ...overrides,
-});
-
 export const apiAf300Data = {
-  invalidPathIdCases: [
-    { tcId: "[AF300-API-04]", vpId: "PATH-002", id: 999999, expectedStatus: [404] },
-    { tcId: "[AF300-API-05]", vpId: "PATH-003", id: 0, expectedStatus: [400, 404] },
-    { tcId: "[AF300-API-06]", vpId: "PATH-004", id: -1, expectedStatus: [400, 404] },
-    { tcId: "[AF300-API-07]", vpId: "PATH-005", id: "abc", expectedStatus: [400, 422] },
-    { tcId: "[AF300-API-08]", vpId: "PATH-006", id: "1.5", expectedStatus: [400, 422] },
-    { tcId: "[AF300-API-09]", vpId: "PATH-011", id: "1 OR 1=1", expectedStatus: [400, 404] },
+  invalidDetailIds: [
+    { tcId: "[AF300-API-05]", vpId: "PATH-002", title: "ID không tồn tại (999999)", id: 999999, expectedStatus: [404] },
+    { tcId: "[AF300-API-06]", vpId: "PATH-004", title: "ID âm (-1)", id: -1, expectedStatus: [400, 404, 422] },
+    { tcId: "[AF300-API-07]", vpId: "PATH-005", title: "ID là chữ (abc)", id: "abc", expectedStatus: [400, 422] },
+    { tcId: "[AF300-API-08]", vpId: "PATH-011", title: "SQLi trong Path", id: "1%20OR%201=1", expectedStatus: [400, 404, 422] },
   ],
-  putInvalidJsonCases: [
-    { tcId: "[AF300-API-15]", vpId: "BODY-003", title: "JSON thiếu ngoặc", raw: '{"name":"New"', expectedStatus: [400] },
-    { tcId: "[AF300-API-16]", vpId: "BODY-004", title: "Trailing comma", raw: '{"name":"New",}', expectedStatus: [400] },
-  ],
-  patchNegativeCases: [
-    { tcId: "[AF300-API-24]", vpId: "UPD-009", title: "PATCH body rỗng {}", payload: {}, expectedStatus: [400, 422] },
-    { tcId: "[AF300-API-25]", vpId: "UPD-010", title: "PATCH coin_price âm", payload: { coin_price: -50 }, expectedStatus: [400, 422] },
-    { tcId: "[AF300-API-28]", vpId: "UPD-013", title: "PATCH name = null", payload: { name: null }, expectedStatus: [400, 422] },
+  patchInvalidCases: [
+    { tcId: "[AF300-API-15]", vpId: "BODY-003", title: "JSON thiếu ngoặc đóng", payload: '{"name":"X"', expectedStatus: [400, 422] },
+    { tcId: "[AF300-API-16]", vpId: "BODY-004", title: "JSON trailing comma", payload: '{"name":"X",}', expectedStatus: [400, 422] },
+    { tcId: "[AF300-API-17]", vpId: "UPD-009", title: "PATCH body rỗng {}", payload: {}, expectedStatus: [400, 422] },
+    { tcId: "[AF300-API-21]", vpId: "BIZ-02", title: "shutter giá ngoài [5000,10000] (250)", payload: { animation_type: "shutter", price: 250 }, expectedStatus: [400, 422] },
+    { tcId: "[AF300-API-23]", vpId: "BIZ-04", title: "continuous giá ngoài list (2000)", payload: { animation_type: "continuous", price: 2000 }, expectedStatus: [400, 422] },
+    { tcId: "[AF300-API-25]", vpId: "STR-009", title: "name vượt 10 ký tự (11)", payload: { name: "12345678901" }, expectedStatus: [400, 422] },
+    { tcId: "[AF300-API-26]", vpId: "UPD-013", title: "name = null", payload: { name: null }, expectedStatus: [400, 422] },
+    { tcId: "[AF300-API-27]", vpId: "STR-001", title: 'name = ""', payload: { name: "" }, expectedStatus: [400, 422] },
+    { tcId: "[AF300-API-28]", vpId: "INT-007", title: "price = -50", payload: { price: -50 }, expectedStatus: [400, 422] },
+    { tcId: "[AF300-API-29]", vpId: "INT-008", title: "price = 12.5", payload: { price: 12.5 }, expectedStatus: [400, 422] },
+    { tcId: "[AF300-API-30]", vpId: "INT-009", title: 'price = "abc"', payload: { price: "abc" }, expectedStatus: [400, 422] },
+    { tcId: "[AF300-API-31]", vpId: "INT-007", title: "sort_order = -1", payload: { sort_order: -1 }, expectedStatus: [400, 422] },
+    { tcId: "[AF300-API-32]", vpId: "ENUM-004", title: "status ngoài enum (UNKNOWN)", payload: { status: "UNKNOWN" }, expectedStatus: [400, 422] },
+    { tcId: "[AF300-API-40]", vpId: "SEC-007", title: "Stored XSS trong name", payload: { name: "<img src=x onerror=alert(1)>" }, expectedStatus: [400, 422] },
   ],
   deleteInvalidCases: [
-    { tcId: "[AF300-API-37]", vpId: "DEL-004", id: 999999, expectedStatus: [404] },
-    { tcId: "[AF300-API-38]", vpId: "DEL-005", id: "abc", expectedStatus: [400, 422] },
+    { tcId: "[AF300-API-46]", vpId: "DEL-004", title: "Xóa ID không tồn tại (999999)", id: 999999, expectedStatus: [404] },
+    { tcId: "[AF300-API-47]", vpId: "DEL-005", title: "Xóa ID sai định dạng (abc)", id: "abc", expectedStatus: [400, 422] },
   ],
 };

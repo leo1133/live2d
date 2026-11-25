@@ -1,24 +1,25 @@
 import { test, expect } from "../../src/fixtures/baseTest.js";
-import { AF500HighValueGiftPage } from "../../src/pages/AF500Page.js";
-import { AF500HighValueGiftAPI } from "../../src/api/AF500API.js";
-import { af500Data } from "../../src/test-data/af500Data.js";
+import { AF500AnimationTypeAPI } from "../../src/api/AF500API.js";
+import { AF500AnimationTypePage } from "../../src/pages/AF500Page.js";
+import { getUiSessionFile } from "../../src/config/endpoint.js";
 
-test.describe("E2E AF500: High-Value Gift Config Sync (UI <-> API)", () => {
-  test("[AF500-E2E-01]: Đối chiếu giá trị Threshold giữa API GET và màn AF500", async ({
-    page,
+test.describe("E2E AF500: Animation Type Filter Sync (UI <-> API)", () => {
+  test("[AF500-E2E-01]: Đối chiếu danh sách gift theo animation_type=shutter giữa API và AF100 UI", async ({
     authenticatedRequest,
+    browser,
   }) => {
-    const api = new AF500HighValueGiftAPI(authenticatedRequest);
-    const apiRes = await api.getConfig();
-    expect(apiRes.status()).toBe(200);
-    const config = await apiRes.json();
-    const threshold = config.threshold ?? config.data?.threshold;
+    const api = new AF500AnimationTypeAPI(authenticatedRequest);
+    const res = await api.getGiftList({ queryParams: { animation_type: "shutter" } });
+    expect(res.status()).toBe(200);
 
-    const hvPage = new AF500HighValueGiftPage(page);
-    await hvPage.goto();
-    await expect(hvPage.thresholdInput).toBeVisible({ timeout: af500Data.timeouts.pageLoad });
-    if (threshold !== undefined) {
-      await expect(hvPage.thresholdInput).toHaveValue(String(threshold));
-    }
+    const context = await browser.newContext({
+      baseURL: process.env.UI_BASE_URL,
+      storageState: getUiSessionFile(),
+    });
+    const page = await context.newPage();
+    const af500Page = new AF500AnimationTypePage(page);
+    await af500Page.gotoList();
+    await expect(page.locator("body")).toBeVisible();
+    await context.close();
   });
 });

@@ -1,43 +1,35 @@
-import { generateRandomNumber } from "../utils/helpers.js";
-
 /**
- * Dữ liệu kiểm thử & Bộ Selector tập trung cho AF500 (Quà cao cấp / High-Value Gift)
- * // [Pending Live Verification]
+ * Test Data & Selectors cho AF500 — GIFT Animation Type (演出種類)
+ * Nguồn Spec: Google Sheet AF500
  */
 export const af500Data = {
   routes: {
-    highValueConfig: "/admin/high-value-gift",
+    giftList: "/admin/gifts",
+    giftCreate: "/admin/gifts/create",
   },
-  selectors: {
-    breadcrumb: '.breadcrumb, [aria-label="Breadcrumb"]',
-    thresholdInput: 'input[name="threshold"], [data-testid="threshold-input"]',
-    highValueToggle: 'input[type="checkbox"][role="switch"], [data-testid="high-value-toggle"]',
-    errorMessages: '.error-message, .invalid-feedback, [role="alert"]',
-    unsavedModal: '.modal-confirm, [role="dialog"]',
-  },
-  labels: {
-    btnSave: "保存",
-    btnCancel: "キャンセル",
-    btnModalOk: "OK",
-    btnModalCancel: "キャンセル",
-    msgSaveSuccess: "正常に保存されました。",
-    msgRequired: "は空欄にできません。",
-    msgHalfWidthNumber: "半角数字のみ入力してください。",
-    msgUnsavedConfirm: "戻ってもよろしいですか？保存されていない変更は失われます。",
-    msgPermissionDenied: "この操作を行う権限がありません。",
-  },
-  thresholdDataCases: [
-    { tcId: "[AF500-8]", label: "Ngưỡng = 0", value: "0", expectValid: false },
-    { tcId: "[AF500-9a]", label: "Ngưỡng âm -100", value: "-100", expectValid: false },
-    { tcId: "[AF500-9b]", label: "Số thập phân 10.5", value: "10.5", expectValid: false },
-    { tcId: "[AF500-9c]", label: "Chữ abc", value: "abc", expectValid: false },
-    { tcId: "[AF500-11]", label: "Số 0 ở đầu 0500", value: "0500", expectValid: true },
-  ],
-  buildValidThreshold: () => String(generateRandomNumber(300, 1000)),
   timeouts: {
     pageLoad: 15000,
-    modal: 5000,
-    action: 10000,
     suiteTimeout: 60000,
   },
+  selectors: {
+    animationTypeRadio: (val) => `input[name='animation_type'][value='${val}']`,
+    priceInput: "[data-testid='gift-price-input'], input[name='price']",
+    categoryDropdown: "[data-testid='gift-category-select'], select[name='category_id']",
+    contentUpload: "[data-testid='gift-image-input'], input[name='image'][type='file']",
+    filterAnimationType: "[data-testid='gift-animation-type-select'], select[name='animation_type']",
+    searchBtn: "button:has-text('検索')",
+    clearBtn: "button:has-text('クリア')",
+  },
+  animationTypes: {
+    normal: "normal",
+    shutter: "shutter",
+    continuous: "continuous",
+  },
+  shutterPrices: ["5000", "10000"],
+  continuousPrices: ["1000", "3000", "5000", "10000"],
+  filterCases: [
+    { tcId: "[AF500-15]", label: "通常演出", value: "normal" },
+    { tcId: "[AF500-16]", label: "シャッター演出", value: "shutter" },
+    { tcId: "[AF500-17]", label: "継続演出", value: "continuous" },
+  ],
 };

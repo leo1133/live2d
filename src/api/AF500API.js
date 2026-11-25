@@ -1,7 +1,7 @@
 import { ENDPOINTS, getApiBaseUrl } from "../config/endpoint.js";
 
 /**
- * API Client cho AF500 (GET/PUT /high-value-gift/config)
+ * API Client cho AF500 (animation_type trên POST /gift/, PATCH /gift/{id}/, GET /gift/)
  */
 export class AF500API {
   constructor(request) {
@@ -9,17 +9,17 @@ export class AF500API {
     this.baseUrl = getApiBaseUrl();
   }
 
-  async getConfig({ headers = {} } = {}) {
-    return this.request.get(`${this.baseUrl}${ENDPOINTS.GIFT.HIGH_VALUE_CONFIG}`, { headers });
+  async createGift({ payload, headers = {} } = {}) {
+    return this.request.post(`${this.baseUrl}${ENDPOINTS.GIFT.CREATE}`, { data: payload, headers });
   }
 
-  async updateConfig({ method = "PUT", payload, headers = {} } = {}) {
-    const url = `${this.baseUrl}${ENDPOINTS.GIFT.HIGH_VALUE_CONFIG}`;
-    const options = { headers };
-    if (payload !== undefined) options.data = payload;
-    if (method.toUpperCase() === "DELETE") return this.request.delete(url, options);
-    return this.request.put(url, options);
+  async getGiftList({ queryParams = {}, headers = {} } = {}) {
+    return this.request.get(`${this.baseUrl}${ENDPOINTS.GIFT.GET_LIST}`, { params: queryParams, headers });
+  }
+
+  async updateGift(id, { payload, headers = {} } = {}) {
+    return this.request.patch(`${this.baseUrl}${ENDPOINTS.GIFT.UPDATE(id)}`, { data: payload, headers });
   }
 }
 
-export { AF500API as AF500HighValueGiftAPI };
+export { AF500API as AF500AnimationTypeAPI };

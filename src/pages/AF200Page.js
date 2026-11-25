@@ -1,62 +1,63 @@
 import { af200Data } from "../test-data/af200Data.js";
 
 /**
- * Page Object Model cho màn hình AF200 — Gift Create
- * // [Pending Live Verification]
+ * Page Object Model cho màn hình AF200 — Gift Create (ギフト登録)
  */
 export class AF200Page {
-  /**
-   * @param {import('@playwright/test').Page} page
-   */
   constructor(page) {
     this.page = page;
-
+    this.sidebarMenu = page.locator(af200Data.selectors.sidebarMenu);
     this.breadcrumb = page.locator(af200Data.selectors.breadcrumb);
-    this.nameInput = page.locator(af200Data.selectors.nameInput);
-    this.coinPriceInput = page.locator(af200Data.selectors.coinPriceInput);
-    this.categoryDropdown = page.locator(af200Data.selectors.categoryDropdown);
+    this.nameInput = page
+      .getByPlaceholder(af200Data.placeholders.nameInput)
+      .or(page.locator(af200Data.selectors.nameInput));
+    this.iconInput = page.locator(af200Data.selectors.iconInput);
+    this.contentInput = page.locator(af200Data.selectors.contentInput);
     this.sortOrderInput = page.locator(af200Data.selectors.sortOrderInput);
-    this.statusToggle = page.locator(af200Data.selectors.statusToggle);
-    this.iconFileInput = page.locator(af200Data.selectors.iconFileInput);
-    this.iconDropZone = page.locator(af200Data.selectors.iconDropZone);
-    this.iconPreview = page.locator(af200Data.selectors.iconPreview);
-    this.iconRemoveBtn = page.locator(af200Data.selectors.iconRemoveBtn);
-    this.animationFileInput = page.locator(af200Data.selectors.animationFileInput);
-    this.animationRemoveBtn = page.locator(af200Data.selectors.animationRemoveBtn);
-    this.saveButton = page.getByRole("button", { name: af200Data.labels.btnSave, exact: true });
-    this.cancelButton = page.getByRole("button", { name: af200Data.labels.btnCancel, exact: true });
-    this.errorMessages = page.locator(af200Data.selectors.errorMessages);
-    this.unsavedModal = page.locator(af200Data.selectors.unsavedModal);
-    this.modalOkBtn = this.unsavedModal.getByRole("button", { name: af200Data.labels.btnModalOk });
-    this.modalCancelBtn = this.unsavedModal.getByRole("button", { name: af200Data.labels.btnModalCancel });
-    this.successMessage = page.getByText(af200Data.labels.msgSaveSuccess);
+    this.priceInput = page
+      .getByPlaceholder(af200Data.placeholders.priceInput)
+      .or(page.locator(af200Data.selectors.priceInput));
+    this.categoryDropdown = page.locator(af200Data.selectors.categoryDropdown);
+    this.addCategoryBtn = page.locator(af200Data.selectors.addCategoryBtn);
+    this.popoverCategoryNameInput = page.locator(af200Data.selectors.popoverCategoryNameInput);
+    this.popoverCategorySubmitBtn = page.locator(af200Data.selectors.popoverCategorySubmitBtn);
+    this.cancelBtn = page.getByRole("button", { name: af200Data.labels.btnCancel, exact: true });
+    this.submitBtn = page.getByRole("button", { name: af200Data.labels.btnSubmit, exact: true });
   }
 
-  getBreadcrumbNode(nodeText) {
-    return this.breadcrumb.getByText(nodeText);
+  getAnimationTypeRadio(val) {
+    return this.page.locator(af200Data.selectors.animationTypeRadio(val));
+  }
+
+  getStatusRadio(val) {
+    return this.page.locator(af200Data.selectors.statusRadio(val));
   }
 
   async goto() {
-    await this.page.goto(af200Data.routes.giftCreate, { waitUntil: "domcontentloaded", timeout: af200Data.timeouts.pageLoad });
+    await this.page.goto(af200Data.routes.giftCreate, {
+      waitUntil: "domcontentloaded",
+      timeout: af200Data.timeouts.pageLoad,
+    });
   }
 
-  async fillForm({ name, coin_price, category_id, sort_order }) {
-    if (name !== undefined) await this.nameInput.fill(name);
-    if (coin_price !== undefined) await this.coinPriceInput.fill(String(coin_price));
-    if (category_id !== undefined) await this.categoryDropdown.selectOption(String(category_id));
-    if (sort_order !== undefined) await this.sortOrderInput.fill(String(sort_order));
+  async fillName(name) {
+    await this.nameInput.fill(name);
   }
 
-  async uploadIcon(filePath) {
-    await this.iconFileInput.setInputFiles(filePath);
+  async fillPrice(price) {
+    await this.priceInput.fill(String(price));
   }
 
-  async clickSave() {
-    await this.saveButton.click();
+  async fillSortOrder(order) {
+    await this.sortOrderInput.fill(String(order));
+  }
+
+  async clickSubmit() {
+    await this.submitBtn.click();
   }
 
   async clickCancel() {
-    await this.cancelButton.click();
+    await this.cancelBtn.click();
   }
 }
 

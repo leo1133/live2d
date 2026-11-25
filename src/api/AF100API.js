@@ -1,7 +1,7 @@
 import { ENDPOINTS, getApiBaseUrl } from "../config/endpoint.js";
 
 /**
- * API Client cho AF100 (GET /gifts & PATCH /gifts/:id/status)
+ * API Client cho AF100 (GET /gift/, DELETE /gift/{gift_id}/, GET /gift/category/)
  */
 export class AF100API {
   constructor(request) {
@@ -26,9 +26,14 @@ export class AF100API {
     return this.send(method, url, { queryParams, headers });
   }
 
-  async toggleGiftStatus(id, { method = "PATCH", payload, headers = {} } = {}) {
-    const url = `${this.baseUrl}${ENDPOINTS.GIFT.TOGGLE_STATUS(id)}`;
-    return this.send(method, url, { payload, headers });
+  async deleteGift(id, { method = "DELETE", headers = {} } = {}) {
+    const url = `${this.baseUrl}${ENDPOINTS.GIFT.DELETE(id)}`;
+    return this.send(method, url, { headers });
+  }
+
+  async getCategoryList({ method = "GET", headers = {} } = {}) {
+    const url = `${this.baseUrl}${ENDPOINTS.GIFT.CATEGORY_LIST}`;
+    return this.send(method, url, { headers });
   }
 }
 
