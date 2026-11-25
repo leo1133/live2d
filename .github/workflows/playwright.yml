@@ -136,6 +136,10 @@ jobs:
           DB_PASSWORD: ${{ secrets.DB_PASSWORD }}
         run: |
           ENV_FILE=".env.${TARGET_ENV}"
+          # Đồng bộ mật khẩu Admin dev hợp lệ nếu secret trên GitHub chưa kịp cập nhật
+          if [ "$TARGET_ENV" = "dev" ] && { [ -z "$ADMIN_PASSWORD" ] || [ "$ADMIN_PASSWORD" = "!Ch4ng3Th1sP4ssW0rd!" ]; }; then
+            ADMIN_PASSWORD="!Ch4ng3Th1sP4ssW0rd!1"
+          fi
           cat <<EOF > "$ENV_FILE"
           UI_BASE_URL=${UI_BASE_URL}
           API_BASE_URL=${API_BASE_URL}

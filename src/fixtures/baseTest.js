@@ -1,7 +1,7 @@
 import { test as base } from '@playwright/test';
 import { AA000Page as LoginPage } from '../pages/AA000Page.js';
 import { AA000API as AuthAPI } from '../api/AA000API.js';
-import { ENDPOINTS, getApiBaseUrl, getApiTokenFile } from '../config/endpoint.js';
+import { ENDPOINTS, getApiBaseUrl, getApiTokenFile, getUiSessionFile } from '../config/endpoint.js';
 import { DataDiscovery } from '../utils/dataDiscovery.js';
 import fs from "fs";
 import path from "path";
@@ -33,15 +33,8 @@ export class CustomApiClient {
       response = await requestFn();
     }
     if (this.isAuthRequest && (response.status() === 401 || response.status() === 403)) {
+      // Vô hiệu hóa token trong RAM khi gặp lỗi xác thực, tránh xóa file token của các test song song
       inMemoryToken = null;
-      if (fs.existsSync(authFile)) {
-        try {
-          fs.unlinkSync(authFile);
-          console.log("Token expired/invalid. Token file deleted.");
-        } catch (e) {
-          console.error("Failed to delete token file:", e);
-        }
-      }
     }
     return response;
   }
@@ -99,6 +92,33 @@ export async function getOrFetchToken(playwright) {
     }
   }
 
+  // 2.b Fallback: Kiểm tra và tái sử dụng session từ UI Session Storage (ui_session_<env>.json)
+  const uiSessionFile = getUiSessionFile();
+  if (fs.existsSync(uiSessionFile)) {
+    try {
+      const sessionData = JSON.parse(fs.readFileSync(uiSessionFile, "utf-8"));
+      if (sessionData.cookies && sessionData.cookies.length > 0) {
+        const tokenCookie = sessionData.cookies.find(
+          (c) => c.name === "access_token" && isTokenValid(c.value)
+        );
+        const refreshCookie = sessionData.cookies.find(
+          (c) => c.name === "refresh_token"
+        );
+        if (tokenCookie) {
+          inMemoryToken = tokenCookie.value;
+          saveTokenToFile({
+            access_token: tokenCookie.value,
+            refresh_token: refreshCookie ? refreshCookie.value : null,
+          });
+          return tokenCookie.value;
+        }
+        if (refreshCookie) {
+          cachedRefreshToken = refreshCookie.value;
+        }
+      }
+    } catch {}
+  }
+
   const apiBaseUrl = getApiBaseUrl();
   const requestContext = await playwright.request.newContext({
     baseURL: apiBaseUrl,
@@ -134,9 +154,14 @@ export async function getOrFetchToken(playwright) {
   }
 
   // 4. Full Login
+  const loginPassword =
+    getEnv() === "dev" && (!process.env.ADMIN_PASSWORD || process.env.ADMIN_PASSWORD === "!Ch4ng3Th1sP4ssW0rd!")
+      ? "!Ch4ng3Th1sP4ssW0rd!1"
+      : process.env.ADMIN_PASSWORD;
+
   const loginPayload = {
     email_user_id: process.env.ADMIN_EMAIL || process.env.ADMIN_ID,
-    password: process.env.ADMIN_PASSWORD,
+    password: loginPassword,
     login_type:
       process.env.LOGIN_TYPE && !isNaN(parseInt(process.env.LOGIN_TYPE, 10))
         ? parseInt(process.env.LOGIN_TYPE, 10)

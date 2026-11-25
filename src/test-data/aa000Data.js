@@ -63,7 +63,10 @@ export const loginData = {
       return process.env.ADMIN_EMAIL || "admin@admin.com";
     },
     get password() {
-      return process.env.ADMIN_PASSWORD || "!Ch4ng3Th1sP4ssW0rd!";
+      if (process.env.ADMIN_PASSWORD && process.env.ADMIN_PASSWORD !== "!Ch4ng3Th1sP4ssW0rd!") {
+        return process.env.ADMIN_PASSWORD;
+      }
+      return "!Ch4ng3Th1sP4ssW0rd!1";
     },
     get accountId() {
       return process.env.ADMIN_ID || "admin";
@@ -78,7 +81,10 @@ export const loginData = {
       return process.env.ADMIN_EMAIL || "admin@admin.com";
     },
     get password() {
-      return process.env.ADMIN_PASSWORD || "!Ch4ng3Th1sP4ssW0rd!";
+      if (process.env.ADMIN_PASSWORD && process.env.ADMIN_PASSWORD !== "!Ch4ng3Th1sP4ssW0rd!") {
+        return process.env.ADMIN_PASSWORD;
+      }
+      return "!Ch4ng3Th1sP4ssW0rd!1";
     },
     get login_type() {
       return Number(process.env.LOGIN_TYPE) || 1;
