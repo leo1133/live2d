@@ -26,7 +26,7 @@ export const ad303Data = {
     tabDetail: '[role="tab"]:has-text("詳細")',
     tabLiverList: '[role="tab"]:has-text("ライバー一覧")',
     tabRevenue: '[role="tab"]:has-text("売上")',
-    cardCashBalance: '[data-testid="cash-balance"], .card:has-text("出金可能残高"), [role="tabpanel"]:has-text("Revenue")',
+    cardCashBalance: '[data-testid="cash-balance"], .card:has-text("出金可能残高"), [role="tabpanel"]:has-text("売上"), [role="tabpanel"]:has-text("Revenue")',
     cardAvailablePoints: '[data-testid="available-points"], .card:has-text("出金可能ポイント")',
     cardFamiliaPoints: '[data-testid="familia-points"], .card:has-text("ファミリア売上ポイント")',
     cardGiftPoints: '[data-testid="gift-points"], .card:has-text("ギフト売上ポイント")',
