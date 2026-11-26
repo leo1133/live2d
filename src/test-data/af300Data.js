@@ -5,6 +5,7 @@
 export const af300Data = {
   routes: {
     giftDetail: (id) => `/admin/gifts/${id}`,
+    giftList: "/admin/gifts",
   },
   timeouts: {
     pageLoad: 15000,
@@ -20,12 +21,27 @@ export const af300Data = {
     saveBtn: "button:has-text('保存')",
     cancelBtn: "button:has-text('キャンセル')",
     deleteBtn: "button:has-text('削除')",
+    deleteConfirmModal: "[role='dialog'], .ant-modal, .modal",
+    deleteModalTitle: ".ant-modal-title, .modal-title, [class*='title']",
   },
   labels: {
     btnSave: "保存",
     btnCancel: "キャンセル",
     btnDelete: "削除",
+    btnDeleteConfirm: "削除",
+    btnDeleteCancel: "キャンセル",
   },
+  messages: {
+    deleteConfirm: "本当に進みますか？",
+    deleteSuccess: "正常に削除されました。",
+    saveSuccess: "正常に更新されました。",
+  },
+  buildUpdateData: (overrides = {}) => ({
+    name: `Upd_${Date.now().toString().slice(-6)}`,
+    price: 888,
+    sort_order: 2,
+    ...overrides,
+  }),
   nameUpdateCases: [
     { tcId: "[AF300-11]", title: "Sửa tên hợp lệ (新ギフト10)", value: "新ギフト10" },
     { tcId: "[AF300-12]", title: "Biên đúng Max = 10 ký tự", value: "1234567890" },

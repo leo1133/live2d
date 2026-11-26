@@ -2,6 +2,13 @@
  * API Test Data cho AF300 — GET/PATCH/DELETE /gift/{gift_id}/
  */
 export const apiAf300Data = {
+  defaultGiftId: 1,
+  validPatchPayload: {
+    name: "Upd_Gift",
+    price: 600,
+    sort_order: 2,
+    status: "public",
+  },
   invalidDetailIds: [
     { tcId: "[AF300-API-05]", vpId: "PATH-002", title: "ID không tồn tại (999999)", id: 999999, expectedStatus: [404] },
     { tcId: "[AF300-API-06]", vpId: "PATH-004", title: "ID âm (-1)", id: -1, expectedStatus: [400, 404, 422] },

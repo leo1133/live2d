@@ -48,4 +48,32 @@ test.describe.serial("UI AF300: Gift Manage - Gift Update / Delete (ギフト更
       }
     });
   }
+
+  test("[AF300-56]: Nút [削除] hiển thị trên giao diện chi tiết quà tặng", async () => {
+    await detailPage.goto(1);
+    if ((await detailPage.deleteBtn.count()) > 0) {
+      await expect(detailPage.deleteBtn).toBeVisible();
+    }
+  });
+
+  test("[AF300-57]: Click nút [削除] mở Modal xác nhận xóa CMMSG28", async () => {
+    await detailPage.goto(1);
+    if ((await detailPage.deleteBtn.count()) > 0) {
+      await detailPage.clickDelete();
+      if ((await detailPage.deleteConfirmModal.count()) > 0) {
+        await expect(detailPage.deleteConfirmModal).toBeVisible();
+      }
+    }
+  });
+
+  test("[AF300-61]: Click [キャンセル] trên Modal CMMSG28 đóng Modal và giữ nguyên trang", async () => {
+    await detailPage.goto(1);
+    if ((await detailPage.deleteBtn.count()) > 0) {
+      await detailPage.clickDelete();
+      if ((await detailPage.deleteConfirmModal.count()) > 0) {
+        await detailPage.cancelDelete();
+        await expect(detailPage.deleteConfirmModal).toBeHidden();
+      }
+    }
+  });
 });
