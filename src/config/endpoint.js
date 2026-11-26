@@ -68,4 +68,17 @@ export const ENDPOINTS = {
     REWARD_DELETE: (agencyId, rewardId) => `/agency/${agencyId}/reward/${rewardId}/`,
     STATEMENT_PDF: (agencyId, rewardId) => `/agency/${agencyId}/statement/${rewardId}/pdf`,
   },
+  GIFT: {
+    GET_LIST: "/gift/",
+    CREATE: "/gift/",
+    DETAIL: (id) => `/gift/${id}/`,
+    UPDATE: (id) => `/gift/${id}/`,
+    DELETE: (id) => `/gift/${id}/`,
+    CATEGORY_LIST: "/gift/category/",
+    CATEGORY_CREATE: "/gift/category/",
+    CATEGORY_DETAIL: (id) => `/gift/category/${id}`,
+    CATEGORY_UPDATE: (id) => `/gift/category/${id}`,
+    CATEGORY_DELETE: (id) => `/gift/category/${id}`,
+    CATEGORY_SORT_ORDER: (id) => `/gift/category/sort-order/${id}`,
+  },
 };
