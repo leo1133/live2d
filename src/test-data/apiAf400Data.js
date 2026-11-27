@@ -3,7 +3,7 @@
  */
 export const apiAf400Data = {
   createValidationCases: [
-    { tcId: "[AF400-API-06]", vpId: "STR-008", title: "name đúng 20 ký tự", payload: { name: "12345678901234567890" }, expectedStatus: [200, 201] },
+    { tcId: "[AF400-API-06]", vpId: "STR-008", title: "name đúng 20 ký tự", payload: { name: `A${Date.now()}`.padEnd(20, "x").slice(0, 20) }, expectedStatus: [200, 201] },
     { tcId: "[AF400-API-07]", vpId: "STR-009", title: "name vượt 21 ký tự", payload: { name: "123456789012345678901" }, expectedStatus: [400, 422] },
     { tcId: "[AF400-API-08]", vpId: "STR-002", title: "name toàn space", payload: { name: "   " }, expectedStatus: [400, 422] },
     { tcId: "[AF400-API-09]", vpId: "REQ-001", title: "Thiếu trường name", payload: {}, expectedStatus: [400, 422] },
@@ -17,9 +17,9 @@ export const apiAf400Data = {
     { tcId: "[AF400-API-18]", vpId: "PATH-002", title: "category_id sai kiểu (abc)", id: "abc", payload: { name: "NewCat" }, expectedStatus: [400, 422] },
   ],
   sortOrderInvalidCases: [
-    { tcId: "[AF400-API-20]", vpId: "INT-007", title: "sort_order âm (-1)", id: 1, payload: { sort_order: -1 }, expectedStatus: [400, 422] },
-    { tcId: "[AF400-API-21]", vpId: "INT-003", title: 'sort_order sai kiểu ("abc")', id: 1, payload: { sort_order: "abc" }, expectedStatus: [400, 422] },
-    { tcId: "[AF400-API-23]", vpId: "PATH-004", title: "category_id=999999 khi sort-order", id: 999999, payload: { sort_order: 1 }, expectedStatus: [404] },
+    { tcId: "[AF400-API-20]", vpId: "INT-007", title: "sort_order âm (-1)", id: 1, payload: { new_sort_order: -1 }, expectedStatus: [400, 422] },
+    { tcId: "[AF400-API-21]", vpId: "INT-003", title: 'sort_order sai kiểu ("abc")', id: 1, payload: { new_sort_order: "abc" }, expectedStatus: [400, 422] },
+    { tcId: "[AF400-API-23]", vpId: "PATH-004", title: "category_id=999999 khi sort-order", id: 999999, payload: { new_sort_order: 1 }, expectedStatus: [404] },
   ],
   deleteInvalidCases: [
     { tcId: "[AF400-API-26]", vpId: "PATH-005", title: "Xóa category_id=999999 không tồn tại", id: 999999, expectedStatus: [404] },

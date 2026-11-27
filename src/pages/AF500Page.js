@@ -19,14 +19,14 @@ export class AF500Page {
 
   async gotoCreate() {
     await this.page.goto(af500Data.routes.giftCreate, {
-      waitUntil: "domcontentloaded",
+      waitUntil: "load",
       timeout: af500Data.timeouts.pageLoad,
     });
   }
 
   async gotoList() {
     await this.page.goto(af500Data.routes.giftList, {
-      waitUntil: "domcontentloaded",
+      waitUntil: "load",
       timeout: af500Data.timeouts.pageLoad,
     });
   }

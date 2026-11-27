@@ -1,4 +1,5 @@
 import { test, expect } from "../../src/fixtures/baseTest.js";
+import { AF100GiftListAPI } from "../../src/api/AF100API.js";
 import { AF200GiftCreateAPI } from "../../src/api/AF200API.js";
 import { AF300GiftDetailAPI } from "../../src/api/AF300API.js";
 import { AF300GiftDetailPage } from "../../src/pages/AF300Page.js";
@@ -10,12 +11,19 @@ test.describe("E2E AF300: Gift Lifecycle (Seed API -> Edit UI -> Verify GET -> C
     page,
     authenticatedRequest,
   }) => {
+    const listApi = new AF100GiftListAPI(authenticatedRequest);
     const createApi = new AF200GiftCreateAPI(authenticatedRequest);
     const detailApi = new AF300GiftDetailAPI(authenticatedRequest);
-    const seedRes = await createApi.createGift({ payload: buildGiftPayload() });
+    const payload = buildGiftPayload();
+    const seedRes = await createApi.createGift({ payload });
     expect([200, 201]).toContain(seedRes.status());
     const seedBody = await seedRes.json();
-    const giftId = seedBody.id || seedBody.data?.id;
+    let giftId = seedBody.id || seedBody.data?.id;
+    if (!giftId) {
+      const searchRes = await listApi.getGiftList({ queryParams: { keyword: payload.name } });
+      const searchBody = await searchRes.json();
+      giftId = searchBody.data?.[0]?.id;
+    }
 
     if (giftId) {
       const detailPage = new AF300GiftDetailPage(page);

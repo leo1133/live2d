@@ -4,7 +4,7 @@
  */
 export const af200Data = {
   routes: {
-    giftCreate: "/admin/gifts/create",
+    giftCreate: "/gifts/create",
   },
   timeouts: {
     pageLoad: 15000,
@@ -12,16 +12,16 @@ export const af200Data = {
     suiteTimeout: 60000,
   },
   selectors: {
-    sidebarMenu: "[data-testid='sidebar-gift-create'], a[href*='/gifts/create']",
+    sidebarMenu: "a[href*='/gifts/create']",
     breadcrumb: "nav[aria-label='breadcrumb'], .breadcrumb",
-    animationTypeRadio: (val) => `input[name='animation_type'][value='${val}']`,
-    nameInput: "[data-testid='gift-name-input'], input[name='name']",
-    iconInput: "[data-testid='gift-icon-input'], input[name='icon'][type='file']",
-    contentInput: "[data-testid='gift-image-input'], input[name='image'][type='file']",
-    statusRadio: (val) => `input[name='status'][value='${val}']`,
-    sortOrderInput: "[data-testid='gift-sort-order-input'], input[name='sort_order']",
-    priceInput: "[data-testid='gift-price-input'], input[name='price']",
-    categoryDropdown: "[data-testid='gift-category-select'], select[name='category_id']",
+    animationTypeRadio: (val) => `#animation_type-${val}`,
+    nameInput: "input[placeholder='ギフト名を入力してください']",
+    iconInput: "input[type='file'] >> nth=0",
+    contentInput: "input[type='file'] >> nth=1",
+    statusRadio: (val) => `#status-${val}`,
+    sortOrderInput: "input[type='text']:not([placeholder])",
+    priceInput: "input[placeholder='値段を入力してください']",
+    categoryDropdown: "button[role='combobox']:has-text('カテゴリ選択')",
     addCategoryBtn: "[data-testid='add-category-popover-btn']",
     popoverCategoryNameInput: "[data-testid='popover-category-name-input']",
     popoverCategorySubmitBtn: "button:has-text('追加する')",
@@ -67,4 +67,11 @@ export const af200Data = {
     uniqueGiftName: () => `G${Date.now().toString().slice(-6)}`,
     uniqueCategoryName: () => `Cat${Date.now().toString().slice(-6)}`,
   },
+  buildGiftFormData: (overrides = {}) => ({
+    name: `G${Date.now().toString().slice(-6)}`,
+    sortOrder: "1",
+    price: "250",
+    iconPath: "src/test-data/assets/test_banner.png",
+    ...overrides,
+  }),
 };

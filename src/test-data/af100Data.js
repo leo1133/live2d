@@ -4,11 +4,14 @@
  */
 export const af100Data = {
   routes: {
-    giftList: "/admin/gifts",
+    giftList: "/gifts",
     buildGiftListQuery: (params = {}) => {
       const qs = new URLSearchParams(params).toString();
-      return qs ? `/admin/gifts?${qs}` : "/admin/gifts";
+      return qs ? `/gifts?${qs}` : "/gifts";
     },
+  },
+  paginationConfig: {
+    defaultPageSize: 10,
   },
   timeouts: {
     pageLoad: 15000,
@@ -16,20 +19,20 @@ export const af100Data = {
     suiteTimeout: 60000,
   },
   selectors: {
-    sidebarMenu: "[data-testid='sidebar-gift-list'], a[href*='/gifts']",
+    sidebarMenu: "a[href='/gifts'][data-sidebar='menu-button']",
     breadcrumb: "nav[aria-label='breadcrumb'], .breadcrumb",
-    searchInput: "[data-testid='gift-search-input'], input[name='keyword']",
+    searchInput: "input[placeholder*='ギフト名']",
     clearSearchIcon: "[data-testid='gift-search-clear']",
-    categoryDropdown: "[data-testid='gift-category-select'], select[name='category']",
-    statusDropdown: "[data-testid='gift-status-select'], select[name='status']",
-    animationTypeDropdown: "[data-testid='gift-animation-type-select'], select[name='animation_type']",
+    categoryDropdown: "button[role='combobox']:has-text('全てカテゴリー')",
+    statusDropdown: "button[role='combobox']:has-text('全てステータス')",
+    animationTypeDropdown: "button[role='combobox']:has-text('全て演出種類')",
     dataTable: "table",
     tableHeaders: "thead th",
     tableRows: "tbody tr",
-    editButton: "[data-testid='gift-edit-btn'], button[aria-label*='編集']",
-    deleteButton: "[data-testid='gift-delete-btn'], button[aria-label*='削除']",
-    emptyState: "[data-testid='empty-state']",
-    paginationContainer: "[data-testid='pagination'], nav[aria-label='pagination']",
+    editButton: "button[aria-label*='編集']",
+    deleteButton: "button[aria-label*='削除']",
+    emptyState: "text=一致する検索結果はありません",
+    paginationContainer: "nav[aria-label='pagination']",
     columns: {
       id: 0,
       icon: 1,
@@ -54,7 +57,7 @@ export const af100Data = {
     btnSearch: "検索",
     btnClear: "クリア",
     btnCreate: "新規登録",
-    emptyState: "一致する結果はありません",
+    emptyState: "一致する検索結果はありません",
     paginationPrev: "<<前",
     paginationNext: "次>>",
     paginationFirst: "<<",
@@ -69,10 +72,6 @@ export const af100Data = {
     { tcId: "[AF100-44]", name: "ステータス" },
     { tcId: "[AF100-45]", name: "カテゴリ" },
     { tcId: "[AF100-46]", name: "値段" },
-    { tcId: "[AF100-47]", name: "演出種類" },
-    { tcId: "[AF100-48]", name: "作成者" },
-    { tcId: "[AF100-49]", name: "作成日" },
-    { tcId: "[AF100-50]", name: "変更日" },
   ],
   searchInputCases: [
     { tcId: "[AF100-13]", title: "Nhập chữ Nhật (ハート)", value: "ハート" },

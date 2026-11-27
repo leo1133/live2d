@@ -18,7 +18,7 @@ export class AF400API {
   }
 
   async updateCategory(id, { payload, headers = {} } = {}) {
-    return this.request.put(`${this.baseUrl}${ENDPOINTS.GIFT.CATEGORY_UPDATE(id)}`, { data: payload, headers });
+    return this.request.patch(`${this.baseUrl}${ENDPOINTS.GIFT.CATEGORY_UPDATE(id)}`, { data: payload, headers });
   }
 
   async updateSortOrder(id, { payload, headers = {} } = {}) {

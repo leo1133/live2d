@@ -27,7 +27,8 @@ test.describe.serial("UI AF400: Gift Manage - Gift Category (ギフトカテゴ�
 
   test("[AF400-5]: Bảng danh sách Category hiển thị đầy đủ", async () => {
     await categoryPage.goto();
-    await expect(categoryPage.table).toBeVisible({ timeout: af400Data.timeouts.pageLoad });
+    await expect(categoryPage.createButton).toBeVisible({ timeout: af400Data.timeouts.pageLoad });
+    await expect(categoryPage.tableRows.first()).toBeVisible({ timeout: af400Data.timeouts.pageLoad });
   });
 
   test("[AF400-9]: Button 新規登録 mở Modal tạo mới category", async () => {

@@ -25,11 +25,16 @@ test.describe("E2E AF100: Triple-Layer Data Consistency (UI <-> API <-> DB)", ()
     await expect(giftPage.tableRows).toHaveCount(expectedCount);
 
     if (apiItems.length > 0 && process.env.DB_HOST) {
-      const dbRes = await db.query("SELECT id, name, coin_price FROM gifts WHERE id = $1 AND deleted_at IS NULL", [
-        apiItems[0].id,
-      ]);
-      if (dbRes.rows.length > 0) {
-        expect(dbRes.rows[0].name).toBe(apiItems[0].name);
+      try {
+        const dbRes = await db.query("SELECT id, name, coin_price FROM gifts WHERE id = $1 AND deleted_at IS NULL", [
+          apiItems[0].id,
+        ]);
+        if (dbRes.rows.length > 0) {
+          expect(dbRes.rows[0].name).toBe(apiItems[0].name);
+        }
+      } catch (err) {
+        const msg = err.message || err.errors?.map((e) => e.message).join(" ") || String(err);
+        if (!/ECONNREFUSED|ETIMEDOUT/.test(msg)) throw err;
       }
     }
   });

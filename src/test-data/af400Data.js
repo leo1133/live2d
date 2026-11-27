@@ -4,7 +4,7 @@
  */
 export const af400Data = {
   routes: {
-    giftCategories: "/admin/gift-categories",
+    giftCategories: "/gifts/categories",
   },
   timeouts: {
     pageLoad: 15000,
@@ -12,13 +12,13 @@ export const af400Data = {
     suiteTimeout: 60000,
   },
   selectors: {
-    sidebarMenu: "[data-testid='sidebar-gift-category'], a[href*='/gift-categories']",
+    sidebarMenu: "a[href*='/gifts/categories']",
     breadcrumb: "nav[aria-label='breadcrumb'], .breadcrumb",
     createButton: "button:has-text('新規登録')",
-    table: "table",
-    tableRows: "tbody tr",
-    dragHandle: "[data-testid='drag-handle-6dots']",
-    categoryNameButton: "[data-testid='category-name-btn']",
+    table: "main",
+    tableRows: "button:has-text('(')",
+    dragHandle: "main button[role='button']",
+    categoryNameButton: "main button:has-text('(')",
     deleteButton: "[data-testid='category-delete-btn']",
     modal: "[role='dialog']",
     modalInput: "[role='dialog'] input",
@@ -32,7 +32,7 @@ export const af400Data = {
     emptyState: "CMMSG47",
   },
   createValidationCases: [
-    { tcId: "[AF400-20]", title: "Biên Max = 20 ký tự", value: "12345678901234567890" },
+    { tcId: "[AF400-20]", title: "Biên Max = 20 ký tự", value: `U${Date.now()}`.padEnd(20, "x").slice(0, 20) },
     { tcId: "[AF400-21]", title: "Biên vượt Max = 21 ký tự", value: "123456789012345678901" },
     { tcId: "[AF400-22]", title: "Bỏ trống ô tên", value: "" },
     { tcId: "[AF400-23]", title: "Toàn khoảng trắng", value: "   " },

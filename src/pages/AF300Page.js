@@ -30,6 +30,10 @@ export class AF300Page {
   async fillPrice(price) {
     await this.priceInput.fill(String(price));
   }
+
+  async clickSave() {
+    await this.saveBtn.click();
+  }
 }
 
 export { AF300Page as AF300GiftDetailPage };

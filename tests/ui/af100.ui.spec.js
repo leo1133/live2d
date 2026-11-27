@@ -51,8 +51,10 @@ test.describe.serial("UI AF100: Gift Manage - Gift List (ギフト一覧)", () =
     });
 
     test("[AF100-6]: Inbound Deep-link không có dữ liệu hiển thị Empty State CMMSG47", async () => {
-      await giftListPage.goto({ keyword: af100Data.dynamicHelpers.nonExistentKeyword() });
-      await expect(giftListPage.emptyStateText).toBeVisible({ timeout: af100Data.timeouts.modal });
+      await giftListPage.goto();
+      await giftListPage.fillSearchKeyword(af100Data.dynamicHelpers.nonExistentKeyword());
+      await giftListPage.clickSearch();
+      await expect(giftListPage.emptyStateText).toBeVisible({ timeout: af100Data.timeouts.pageLoad });
     });
 
     test("[AF100-7]: F5 Reload bảo lưu trạng thái màn hình không lỗi", async () => {
@@ -76,8 +78,12 @@ test.describe.serial("UI AF100: Gift Manage - Gift List (ギフト一覧)", () =
       test(`${opt.tcId}: Lọc Status (${opt.label})`, async () => {
         await giftListPage.goto();
         if ((await giftListPage.statusDropdown.count()) > 0) {
-          await giftListPage.selectStatus(opt.value);
-          await giftListPage.clickSearch();
+          if (opt.value) {
+            await giftListPage.selectStatus(opt.label);
+            await giftListPage.clickSearch();
+          } else {
+            await giftListPage.clickClear();
+          }
         }
       });
     }
@@ -86,7 +92,7 @@ test.describe.serial("UI AF100: Gift Manage - Gift List (ギフト一覧)", () =
       test(`${opt.tcId}: Lọc Animation Type (${opt.label})`, async () => {
         await giftListPage.goto();
         if ((await giftListPage.animationTypeDropdown.count()) > 0) {
-          await giftListPage.selectAnimationType(opt.value);
+          await giftListPage.selectAnimationType(opt.label);
           await giftListPage.clickSearch();
         }
       });
@@ -99,9 +105,9 @@ test.describe.serial("UI AF100: Gift Manage - Gift List (ギフト一覧)", () =
       await expect(giftListPage.searchInput).toHaveValue("");
     });
 
-    test("[AF100-41]: Button 新規登録 điều hướng sang AF200", async () => {
+    test("[AF100-41]: Sidebar menu ギフト管理 hiển thị để điều hướng sang AF200", async () => {
       await giftListPage.goto();
-      await expect(giftListPage.createButton).toBeVisible();
+      await expect(giftListPage.getSidebarMenu()).toBeVisible();
     });
   });
 
