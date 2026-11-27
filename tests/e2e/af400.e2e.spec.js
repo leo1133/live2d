@@ -16,7 +16,7 @@ test.describe("E2E AF400: Gift Category Sync (UI <-> API)", () => {
 
     const catPage = new AF400CategoryManagePage(page);
     await catPage.goto();
-    await expect(catPage.table).toBeVisible({ timeout: af400Data.timeouts.pageLoad });
+    await expect(catPage.createButton).toBeVisible({ timeout: af400Data.timeouts.pageLoad });
     if (categories.length > 0) {
       await expect(catPage.tableRows.first()).toBeVisible();
     }

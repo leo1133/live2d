@@ -9,7 +9,7 @@ test.describe("E2E AF500: Animation Type Filter Sync (UI <-> API)", () => {
     browser,
   }) => {
     const api = new AF500AnimationTypeAPI(authenticatedRequest);
-    const res = await api.getGiftList({ queryParams: { animation_type: "shutter" } });
+    const res = await api.getGiftList({ queryParams: { animation_type: 2 } });
     expect(res.status()).toBe(200);
 
     const context = await browser.newContext({

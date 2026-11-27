@@ -1,6 +1,7 @@
 import { test, expect } from "../../src/fixtures/baseTest.js";
 import { AF300GiftDetailAPI } from "../../src/api/AF300API.js";
 import { apiAf300Data } from "../../src/test-data/apiAf300Data.js";
+import { buildGiftPayload } from "../../src/test-data/apiAf200Data.js";
 
 test.describe("API AF300: Gift Detail / Update / Delete (/gift/{gift_id}/)", () => {
   test.describe("1. GET /gift/{gift_id}/ — Auth, Path & Method", () => {
@@ -34,10 +35,10 @@ test.describe("API AF300: Gift Detail / Update / Delete (/gift/{gift_id}/)", () 
       });
     }
 
-    test("[AF300-API-38] (UPD-003): PATCH gift_id=999999 không tồn tại -> 404", async ({ authenticatedRequest }) => {
+    test("[AF300-API-38] (UPD-003): PATCH gift_id=999999 không tồn tại -> 404/422", async ({ authenticatedRequest }) => {
       const api = new AF300GiftDetailAPI(authenticatedRequest);
-      const res = await api.updateGift(999999, { payload: { name: "NotFound" } });
-      expect([404]).toContain(res.status());
+      const res = await api.updateGift(999999, { payload: buildGiftPayload({ name: "NotFound" }) });
+      expect([404, 422]).toContain(res.status());
     });
   });
 

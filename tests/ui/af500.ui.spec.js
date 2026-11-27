@@ -28,7 +28,7 @@ test.describe.serial("UI AF500: GIFT Animation Type (演出種類)", () => {
     await af500Page.gotoCreate();
     const normalRadio = af500Page.getAnimationTypeRadio(af500Data.animationTypes.normal);
     if ((await normalRadio.count()) > 0) {
-      await expect(normalRadio).toBeChecked();
+      await expect(normalRadio).toHaveAttribute("aria-checked", "true");
     }
   });
 
@@ -36,7 +36,7 @@ test.describe.serial("UI AF500: GIFT Animation Type (演出種類)", () => {
     await af500Page.gotoCreate();
     const shutterRadio = af500Page.getAnimationTypeRadio(af500Data.animationTypes.shutter);
     if ((await shutterRadio.count()) > 0) {
-      await shutterRadio.check();
+      await shutterRadio.click();
       await expect(af500Page.categoryDropdown).toBeDisabled();
     }
   });
@@ -45,7 +45,7 @@ test.describe.serial("UI AF500: GIFT Animation Type (演出種類)", () => {
     await af500Page.gotoCreate();
     const contRadio = af500Page.getAnimationTypeRadio(af500Data.animationTypes.continuous);
     if ((await contRadio.count()) > 0) {
-      await contRadio.check();
+      await contRadio.click();
       await expect(af500Page.categoryDropdown).toBeDisabled();
     }
   });
@@ -54,7 +54,8 @@ test.describe.serial("UI AF500: GIFT Animation Type (演出種類)", () => {
     test(`${tc.tcId}: Filter AF100 theo ${tc.label}`, async () => {
       await af500Page.gotoList();
       if ((await af500Page.filterAnimationType.count()) > 0) {
-        await af500Page.filterAnimationType.selectOption(tc.value);
+        await af500Page.filterAnimationType.click();
+        await sharedPage.getByRole("option", { name: tc.label, exact: true }).click();
         await af500Page.searchBtn.click();
       }
     });

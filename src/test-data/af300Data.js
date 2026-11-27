@@ -4,7 +4,7 @@
  */
 export const af300Data = {
   routes: {
-    giftDetail: (id) => `/admin/gifts/${id}`,
+    giftDetail: (id) => `/gifts/detail/${id}`,
   },
   timeouts: {
     pageLoad: 15000,
@@ -13,10 +13,10 @@ export const af300Data = {
   },
   selectors: {
     breadcrumb: "nav[aria-label='breadcrumb'], .breadcrumb",
-    nameInput: "[data-testid='gift-name-input'], input[name='name']",
-    sortOrderInput: "[data-testid='gift-sort-order-input'], input[name='sort_order']",
-    priceInput: "[data-testid='gift-price-input'], input[name='price']",
-    categoryDropdown: "[data-testid='gift-category-select'], select[name='category_id']",
+    nameInput: "input[placeholder='ギフト名を入力してください']",
+    sortOrderInput: "input[type='text']:not([placeholder])",
+    priceInput: "input[placeholder='値段を入力してください']",
+    categoryDropdown: "button[role='combobox']:has-text('カテゴリ選択')",
     saveBtn: "button:has-text('保存')",
     cancelBtn: "button:has-text('キャンセル')",
     deleteBtn: "button:has-text('削除')",
@@ -44,4 +44,9 @@ export const af300Data = {
     { tcId: "[AF300-2]", title: "ID không tồn tại (999999)", id: "999999" },
     { tcId: "[AF300-3]", title: "ID sai định dạng (abc)", id: "abc" },
   ],
+  buildUpdateData: (overrides = {}) => ({
+    name: `U${Date.now().toString().slice(-6)}`,
+    price: "300",
+    ...overrides,
+  }),
 };

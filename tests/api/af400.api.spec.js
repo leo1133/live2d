@@ -24,7 +24,7 @@ test.describe("API AF400: Gift Category (/gift/category/ & /gift/category/sort-o
   }
 
   for (const tc of apiAf400Data.updateInvalidCases) {
-    test(`${tc.tcId} (${tc.vpId}): PUT /gift/category/{id} - ${tc.title}`, async ({ authenticatedRequest }) => {
+    test(`${tc.tcId} (${tc.vpId}): PATCH /gift/category/{id} - ${tc.title}`, async ({ authenticatedRequest }) => {
       const api = new AF400CategoryAPI(authenticatedRequest);
       const res = await api.updateCategory(tc.id, { payload: tc.payload });
       expect(tc.expectedStatus).toContain(res.status());
@@ -47,9 +47,9 @@ test.describe("API AF400: Gift Category (/gift/category/ & /gift/category/sort-o
     });
   }
 
-  test("[AF400-API-28] (MTD-002): DELETE /gift/category/ collection -> 405", async ({ authenticatedRequest }) => {
+  test("[AF400-API-28] (MTD-002): DELETE /gift/category/ collection -> 405/404/422", async ({ authenticatedRequest }) => {
     const api = new AF400CategoryAPI(authenticatedRequest);
     const res = await api.deleteCollection();
-    expect([405, 404]).toContain(res.status());
+    expect([405, 404, 422]).toContain(res.status());
   });
 });

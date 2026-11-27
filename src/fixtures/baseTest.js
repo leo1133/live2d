@@ -1,7 +1,7 @@
 import { test as base } from '@playwright/test';
 import { AA000Page as LoginPage } from '../pages/AA000Page.js';
 import { AA000API as AuthAPI } from '../api/AA000API.js';
-import { ENDPOINTS, getApiBaseUrl, getApiTokenFile, getUiSessionFile } from '../config/endpoint.js';
+import { ENDPOINTS, getApiBaseUrl, getApiTokenFile, getEnv, getUiSessionFile } from '../config/endpoint.js';
 import { DataDiscovery } from '../utils/dataDiscovery.js';
 import fs from "fs";
 import path from "path";

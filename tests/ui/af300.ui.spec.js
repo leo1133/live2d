@@ -33,7 +33,7 @@ test.describe.serial("UI AF300: Gift Manage - Gift Update / Delete (ギフト更
 
   for (const tc of af300Data.nameUpdateCases) {
     test(`${tc.tcId}: Textbox ギフト名 - ${tc.title}`, async () => {
-      await detailPage.goto(1);
+      await detailPage.goto(105);
       if ((await detailPage.nameInput.count()) > 0) {
         await detailPage.fillName(tc.value);
       }
@@ -42,7 +42,7 @@ test.describe.serial("UI AF300: Gift Manage - Gift Update / Delete (ギフト更
 
   for (const tc of af300Data.priceUpdateCases) {
     test(`${tc.tcId}: Textbox ギフト値段 - ${tc.title}`, async () => {
-      await detailPage.goto(1);
+      await detailPage.goto(105);
       if ((await detailPage.priceInput.count()) > 0) {
         await detailPage.fillPrice(tc.value);
       }

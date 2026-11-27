@@ -19,13 +19,18 @@ export class AF400Page {
 
   async goto() {
     await this.page.goto(af400Data.routes.giftCategories, {
-      waitUntil: "domcontentloaded",
+      waitUntil: "load",
       timeout: af400Data.timeouts.pageLoad,
     });
   }
 
   async openCreateModal() {
+    await this.createButton.waitFor({ state: "visible", timeout: af400Data.timeouts.pageLoad });
     await this.createButton.click();
+    if (!(await this.modalInput.isVisible())) {
+      await this.createButton.click();
+    }
+    await this.modalInput.waitFor({ state: "visible", timeout: af400Data.timeouts.modal });
   }
 }
 

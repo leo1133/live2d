@@ -5,7 +5,7 @@ import { apiAf500Data } from "../../src/test-data/apiAf500Data.js";
 test.describe("API AF500: GIFT Animation Type (演出種類)", () => {
   test("[AF500-API-01] (AUTH-001): POST /gift/ thiếu token -> 401", async ({ unauthenticatedRequest }) => {
     const api = new AF500AnimationTypeAPI(unauthenticatedRequest);
-    const res = await api.createGift({ payload: { name: "Shutter1", animation_type: "shutter", price: 5000 } });
+    const res = await api.createGift({ payload: { name: "Shutter1", animation_type: 2, price: 5000 } });
     expect([401, 403]).toContain(res.status());
   });
 

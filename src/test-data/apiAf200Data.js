@@ -3,10 +3,15 @@
  */
 export const buildGiftPayload = (overrides = {}) => ({
   name: `G${Date.now().toString().slice(-6)}`,
+  icon: "gift_data/icon/no9c1gnm_20250718100123638025.jpg",
+  icon_name: "test-icon.jpg",
+  image: "gift_data/image/Logo_MDC_20260423023820905635.png",
+  image_name: "Logo_MDC.png",
+  category_id: 22,
   price: 250,
-  sort_order: 1,
-  status: "public",
-  animation_type: "normal",
+  sort_order: 999,
+  status: true,
+  animation_type: 1,
   ...overrides,
 });
 
@@ -19,16 +24,16 @@ export const apiAf200Data = {
     { tcId: "[AF200-API-12]", vpId: "BODY-009", title: "Body = Array", payload: [{ name: "Star" }], expectedStatus: [400, 422] },
   ],
   animationTypeValidCases: [
-    { tcId: "[AF200-API-15]", vpId: "BIZ-01", title: "shutter giá 5000", animation_type: "shutter", price: 5000, expectedStatus: [200, 201] },
-    { tcId: "[AF200-API-16]", vpId: "BIZ-01", title: "shutter giá 10000", animation_type: "shutter", price: 10000, expectedStatus: [200, 201] },
-    { tcId: "[AF200-API-18]", vpId: "BIZ-03", title: "continuous giá 1000", animation_type: "continuous", price: 1000, expectedStatus: [200, 201] },
-    { tcId: "[AF200-API-19]", vpId: "BIZ-03", title: "continuous giá 3000", animation_type: "continuous", price: 3000, expectedStatus: [200, 201] },
-    { tcId: "[AF200-API-20]", vpId: "BIZ-03", title: "continuous giá 5000", animation_type: "continuous", price: 5000, expectedStatus: [200, 201] },
-    { tcId: "[AF200-API-21]", vpId: "BIZ-03", title: "continuous giá 10000", animation_type: "continuous", price: 10000, expectedStatus: [200, 201] },
+    { tcId: "[AF200-API-15]", vpId: "BIZ-01", title: "shutter giá 5000", animation_type: 2, price: 5000, expectedStatus: [200, 201] },
+    { tcId: "[AF200-API-16]", vpId: "BIZ-01", title: "shutter giá 10000", animation_type: 2, price: 10000, expectedStatus: [200, 201] },
+    { tcId: "[AF200-API-18]", vpId: "BIZ-03", title: "continuous giá 1000", animation_type: 3, price: 1000, expectedStatus: [200, 201] },
+    { tcId: "[AF200-API-19]", vpId: "BIZ-03", title: "continuous giá 3000", animation_type: 3, price: 3000, expectedStatus: [200, 201] },
+    { tcId: "[AF200-API-20]", vpId: "BIZ-03", title: "continuous giá 5000", animation_type: 3, price: 5000, expectedStatus: [200, 201] },
+    { tcId: "[AF200-API-21]", vpId: "BIZ-03", title: "continuous giá 10000", animation_type: 3, price: 10000, expectedStatus: [200, 201] },
   ],
   animationTypeInvalidCases: [
-    { tcId: "[AF200-API-17]", vpId: "BIZ-02", title: "shutter giá ngoài [5000, 10000] (250)", animation_type: "shutter", price: 250, expectedStatus: [400, 422] },
-    { tcId: "[AF200-API-22]", vpId: "BIZ-04", title: "continuous giá ngoài list (2000)", animation_type: "continuous", price: 2000, expectedStatus: [400, 422] },
+    { tcId: "[AF200-API-17]", vpId: "BIZ-02", title: "shutter giá ngoài [5000, 10000] (250)", animation_type: 2, price: 250, expectedStatus: [400, 422] },
+    { tcId: "[AF200-API-22]", vpId: "BIZ-04", title: "continuous giá ngoài list (2000)", animation_type: 3, price: 2000, expectedStatus: [400, 422] },
     { tcId: "[AF200-API-46]", vpId: "ENUM-005", title: "animation_type ngoài enum (special)", animation_type: "special", price: 1000, expectedStatus: [400, 422] },
   ],
   fieldValidationCases: [
@@ -51,7 +56,7 @@ export const apiAf200Data = {
     { tcId: "[AF200-API-49]", vpId: "SEC-007", title: "XSS trong name", payload: { name: "<script>alert(1)</script>", price: 100, sort_order: 1 }, expectedStatus: [400, 422] },
   ],
   categoryInlineCases: [
-    { tcId: "[AF200-API-64]", vpId: "STR-008", title: "name đúng 20 ký tự", payload: { name: "12345678901234567890" }, expectedStatus: [200, 201] },
+    { tcId: "[AF200-API-64]", vpId: "STR-008", title: "name đúng 20 ký tự", payload: { name: `C${Date.now()}`.padEnd(20, "x").slice(0, 20) }, expectedStatus: [200, 201] },
     { tcId: "[AF200-API-65]", vpId: "STR-009", title: "name vượt 20 ký tự (21)", payload: { name: "123456789012345678901" }, expectedStatus: [400, 422] },
     { tcId: "[AF200-API-66]", vpId: "STR-001", title: "name toàn space", payload: { name: "   " }, expectedStatus: [400, 422] },
   ],

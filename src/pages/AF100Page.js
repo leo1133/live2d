@@ -78,16 +78,19 @@ export class AF100Page {
     await this.clearButton.click();
   }
 
-  async selectStatus(statusValue) {
-    await this.statusDropdown.selectOption(statusValue);
+  async selectStatus(statusLabel) {
+    await this.statusDropdown.click();
+    await this.page.getByRole("option", { name: statusLabel, exact: true }).click();
   }
 
-  async selectCategory(categoryValue) {
-    await this.categoryDropdown.selectOption(String(categoryValue));
+  async selectCategory(categoryLabel) {
+    await this.categoryDropdown.click();
+    await this.page.getByRole("option", { name: String(categoryLabel), exact: true }).click();
   }
 
-  async selectAnimationType(animationType) {
-    await this.animationTypeDropdown.selectOption(animationType);
+  async selectAnimationType(animationLabel) {
+    await this.animationTypeDropdown.click();
+    await this.page.getByRole("option", { name: animationLabel, exact: true }).click();
   }
 
   async clickCreate() {

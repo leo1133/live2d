@@ -35,7 +35,7 @@ export class AF200Page {
 
   async goto() {
     await this.page.goto(af200Data.routes.giftCreate, {
-      waitUntil: "domcontentloaded",
+      waitUntil: "load",
       timeout: af200Data.timeouts.pageLoad,
     });
   }
@@ -50,6 +50,32 @@ export class AF200Page {
 
   async fillSortOrder(order) {
     await this.sortOrderInput.fill(String(order));
+  }
+
+  async fillForm(formData) {
+    if (formData.name !== undefined) await this.fillName(formData.name);
+    if (formData.iconPath && (await this.iconInput.count()) > 0) {
+      await this.iconInput.setInputFiles(formData.iconPath);
+    }
+    if (formData.iconPath && (await this.contentInput.count()) > 0 && (await this.contentInput.isEnabled())) {
+      await this.contentInput.setInputFiles(formData.iconPath);
+    }
+    if (formData.sortOrder !== undefined && (await this.sortOrderInput.count()) > 0) {
+      await this.fillSortOrder(formData.sortOrder);
+    }
+    if (formData.price !== undefined && (await this.priceInput.count()) > 0) {
+      await this.fillPrice(formData.price);
+    }
+    if ((await this.categoryDropdown.count()) > 0 && (await this.categoryDropdown.isEnabled())) {
+      await this.categoryDropdown.click();
+      const firstOption = this.page.getByRole("option").first();
+      await firstOption.waitFor({ state: "visible", timeout: 10000 });
+      await firstOption.click();
+    }
+  }
+
+  async clickSave() {
+    await this.clickSubmit();
   }
 
   async clickSubmit() {
