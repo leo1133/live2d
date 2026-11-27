@@ -57,4 +57,35 @@ test.describe("API AF300: Gift Detail / Update / Delete (/gift/{gift_id}/)", () 
       expect([405, 404]).toContain(res.status());
     });
   });
+
+  test.describe("4. Database Verification (API vs DB) - AF300", () => {
+    let isDbAvailable = false;
+
+    test.beforeAll(async () => {
+      const { DBHelper } = await import("../../src/utils/db.helper.js");
+      isDbAvailable = await DBHelper.isConnected();
+    });
+
+    test("TC_DB01: Đồng bộ chi tiết Gift giữa GET /gift/{id}/ và bảng gifts", async ({ authenticatedRequest, db }) => {
+      test.skip(!isDbAvailable, "⚠️ Bỏ qua DB tests: Database offline");
+      const pick = await db.query(
+        "SELECT id, name, price, sort_order, status, animation_type, category_id FROM gifts WHERE is_deleted = false AND deleted_at IS NULL ORDER BY id DESC LIMIT 1"
+      );
+      if (pick.rows.length === 0) return;
+      const dbItem = pick.rows[0];
+
+      const api = new AF300GiftDetailAPI(authenticatedRequest);
+      const res = await api.getGiftDetail(dbItem.id);
+      expect(res.status()).toBe(200);
+      const apiItem = await res.json();
+
+      expect(apiItem.id).toBe(dbItem.id);
+      expect(apiItem.name).toBe(dbItem.name);
+      expect(apiItem.price).toBe(dbItem.price);
+      expect(apiItem.sort_order).toBe(dbItem.sort_order);
+      expect(apiItem.status).toBe(dbItem.status);
+      expect(apiItem.animation_type).toBe(dbItem.animation_type);
+      expect(apiItem.category_id).toBe(dbItem.category_id);
+    });
+  });
 });
