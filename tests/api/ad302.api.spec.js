@@ -84,4 +84,50 @@ test.describe("AD302_Agency Streamer List - Backend API Automation Tests (100 Vi
       }
     });
   }
+
+  test.describe("Database Verification (API vs DB) - AD302", () => {
+    let isDbAvailable = false;
+
+    test.beforeAll(async () => {
+      const { DBHelper } = await import("../../src/utils/db.helper.js");
+      isDbAvailable = await DBHelper.isConnected();
+    });
+
+    test("TC_DB01: Đồng bộ danh sách & Total Count Liver giữa GET /agency/list/{id} và bảng agency_member + users", async ({ db }) => {
+      test.skip(!isDbAvailable, "⚠️ Bỏ qua DB tests: Database offline");
+      const pick = await db.query(
+        `SELECT am.agency_id, COUNT(*)::int AS cnt
+         FROM agency_member am
+         JOIN users u ON am.user_id = u.id
+         JOIN agency a ON am.agency_id = a.id
+         WHERE am.is_deleted = false AND u.is_deleted = false AND a.is_deleted = false
+         GROUP BY am.agency_id
+         ORDER BY cnt DESC LIMIT 1`
+      );
+      if (pick.rows.length === 0) return;
+      const agencyId = pick.rows[0].agency_id;
+
+      const res = await agencyApi.getLiverList(agencyId, { queryParams: { page: 1, items_per_page: 10 } });
+      expect(res.status()).toBe(200);
+      const body = await res.json();
+      expect(body.total_count).toBe(pick.rows[0].cnt);
+
+      if (body.data.length > 0) {
+        const apiItem = body.data[0];
+        const dbUser = await db.query(
+          `SELECT u.id, u.uid, u.display_name, u.status, u.can_livestream, am.status AS agency_status
+           FROM agency_member am
+           JOIN users u ON am.user_id = u.id
+           WHERE am.agency_id = $1 AND u.id = $2 AND am.is_deleted = false`,
+          [agencyId, apiItem.user_id]
+        );
+        expect(dbUser.rows.length).toBe(1);
+        expect(apiItem.user_uid).toBe(dbUser.rows[0].uid);
+        expect(apiItem.user_name).toBe(dbUser.rows[0].display_name);
+        expect(apiItem.status).toBe(dbUser.rows[0].status);
+        expect(apiItem.agency_status).toBe(dbUser.rows[0].agency_status);
+        expect(apiItem.can_livestream).toBe(dbUser.rows[0].can_livestream);
+      }
+    });
+  });
 });

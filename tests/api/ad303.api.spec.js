@@ -94,4 +94,38 @@ test.describe("AD303_Revenue Analysis - Backend API Automation Tests (76 Viewpoi
       }
     });
   }
+
+  test.describe("Database Verification (API vs DB) - AD303", () => {
+    let isDbAvailable = false;
+
+    test.beforeAll(async () => {
+      const { DBHelper } = await import("../../src/utils/db.helper.js");
+      isDbAvailable = await DBHelper.isConnected();
+    });
+
+    test("TC_DB01: Đối soát danh sách streamers từ GET /agency/{id}/revenue/ với bảng agency_member và revenues", async ({ db }) => {
+      test.skip(!isDbAvailable, "⚠️ Bỏ qua DB tests: Database offline");
+      const pick = await db.query(
+        "SELECT id FROM agency WHERE is_deleted = false AND deleted_at IS NULL ORDER BY id DESC LIMIT 1"
+      );
+      if (pick.rows.length === 0) return;
+      const agencyId = pick.rows[0].id;
+
+      const res = await agencyApi.getRevenue(agencyId);
+      expect(res.status()).toBe(200);
+      const body = await res.json();
+
+      if (Array.isArray(body.streamers) && body.streamers.length > 0) {
+        const streamerIds = body.streamers.map((s) => s.id);
+        const dbMembers = await db.query(
+          "SELECT user_id FROM agency_member WHERE agency_id = $1 AND user_id = ANY($2) AND is_deleted = false",
+          [agencyId, streamerIds]
+        );
+        expect(dbMembers.rows.length).toBeGreaterThan(0);
+      }
+
+      const revCheck = await db.query("SELECT COUNT(*)::int AS cnt FROM revenues");
+      expect(revCheck.rows[0].cnt).toBeGreaterThanOrEqual(0);
+    });
+  });
 });

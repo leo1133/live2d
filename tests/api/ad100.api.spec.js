@@ -256,4 +256,50 @@ test.describe("API AD100: Agency List & Search (POST /agency/)", () => {
       }
     });
   });
+
+  test.describe("Database Verification (API vs DB) - AD100", () => {
+    let isDbAvailable = false;
+
+    test.beforeAll(async () => {
+      const { DBHelper } = await import("../../src/utils/db.helper.js");
+      isDbAvailable = await DBHelper.isConnected();
+    });
+
+    test("TC_DB01: Đồng bộ Total Count giữa POST /agency/ và bảng agency", async ({ authenticatedRequest, db }) => {
+      test.skip(!isDbAvailable, "⚠️ Bỏ qua DB tests: Database offline");
+      const api = new AD100AgencyAPI(authenticatedRequest);
+      const response = await api.getAgencyList({ method: "POST", payload: { page: 1, items_per_page: 10 } });
+      expect(response.status()).toBe(200);
+      const body = await response.json();
+
+      const dbCountRes = await db.query(
+        "SELECT COUNT(*)::int AS cnt FROM agency WHERE is_deleted = false AND deleted_at IS NULL"
+      );
+      expect(body.total_count).toBe(dbCountRes.rows[0].cnt);
+    });
+
+    test("TC_DB02: Đồng bộ chi tiết từng trường (Field-by-Field) của Agency Item", async ({ authenticatedRequest, db }) => {
+      test.skip(!isDbAvailable, "⚠️ Bỏ qua DB tests: Database offline");
+      const api = new AD100AgencyAPI(authenticatedRequest);
+      const response = await api.getAgencyList({ method: "POST", payload: { page: 1, items_per_page: 10 } });
+      expect(response.status()).toBe(200);
+      const body = await response.json();
+      const items = body.data || body.items || [];
+      if (items.length > 0) {
+        const apiItem = items[0];
+        const dbRes = await db.query(
+          "SELECT id, name, agency_code, status, contact_name, contact_phone FROM agency WHERE id = $1 AND is_deleted = false",
+          [apiItem.id]
+        );
+        expect(dbRes.rows.length).toBe(1);
+        const dbItem = dbRes.rows[0];
+        expect(apiItem.id).toBe(dbItem.id);
+        expect(apiItem.name).toBe(dbItem.name);
+        expect(apiItem.agency_code).toBe(dbItem.agency_code);
+        expect(apiItem.status).toBe(dbItem.status);
+        expect(apiItem.contact_name).toBe(dbItem.contact_name);
+        expect(apiItem.contact_phone).toBe(dbItem.contact_phone);
+      }
+    });
+  });
 });

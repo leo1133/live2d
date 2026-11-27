@@ -72,4 +72,36 @@ test.describe("AD200_Register Agency - Backend API Automation Tests (114 Viewpoi
       }
     });
   }
+
+  test.describe("Database Verification (API vs DB) - AD200", () => {
+    let isDbAvailable = false;
+
+    test.beforeAll(async () => {
+      const { DBHelper } = await import("../../src/utils/db.helper.js");
+      isDbAvailable = await DBHelper.isConnected();
+    });
+
+    test("TC_DB01: Kiểm tra tính toàn vẹn khóa ngoại owner_id và unique agency_code trên bảng agency", async ({ db }) => {
+      test.skip(!isDbAvailable, "⚠️ Bỏ qua DB tests: Database offline");
+      const res = await db.query(
+        `SELECT a.id, a.agency_code, a.owner_id, u.email
+         FROM agency a
+         LEFT JOIN users u ON a.owner_id = u.id
+         WHERE a.is_deleted = false AND a.deleted_at IS NULL
+         ORDER BY a.id DESC LIMIT 10`
+      );
+      expect(res.rows.length).toBeGreaterThan(0);
+      for (const row of res.rows) {
+        expect(row.agency_code).toBeTruthy();
+      }
+      const dupRes = await db.query(
+        `SELECT agency_code, COUNT(*)::int AS cnt
+         FROM agency
+         WHERE is_deleted = false AND deleted_at IS NULL
+         GROUP BY agency_code
+         HAVING COUNT(*) > 1`
+      );
+      expect(dupRes.rows.length).toBe(0);
+    });
+  });
 });

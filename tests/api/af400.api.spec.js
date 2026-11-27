@@ -52,4 +52,42 @@ test.describe("API AF400: Gift Category (/gift/category/ & /gift/category/sort-o
     const res = await api.deleteCollection();
     expect([405, 404, 422]).toContain(res.status());
   });
+
+  test.describe("Database Verification (API vs DB) - AF400", () => {
+    let isDbAvailable = false;
+
+    test.beforeAll(async () => {
+      const { DBHelper } = await import("../../src/utils/db.helper.js");
+      isDbAvailable = await DBHelper.isConnected();
+    });
+
+    test("TC_DB01: Đồng bộ Total Count, Field-by-Field và gift_count giữa GET /gift/category/ và DB", async ({ authenticatedRequest, db }) => {
+      test.skip(!isDbAvailable, "⚠️ Bỏ qua DB tests: Database offline");
+      const api = new AF400CategoryAPI(authenticatedRequest);
+      const res = await api.getCategories();
+      expect(res.status()).toBe(200);
+      const body = await res.json();
+
+      const countRes = await db.query(
+        "SELECT COUNT(*)::int AS cnt FROM gift_categories WHERE is_deleted = false AND deleted_at IS NULL"
+      );
+      expect(body.total_count).toBe(countRes.rows[0].cnt);
+
+      if (body.data.length > 0) {
+        const apiItem = body.data[0];
+        const dbRes = await db.query(
+          `SELECT gc.id, gc.name, gc.sort_order,
+                  (SELECT COUNT(*)::int FROM gifts g WHERE g.category_id = gc.id AND g.is_deleted = false AND g.deleted_at IS NULL) AS gift_count
+           FROM gift_categories gc
+           WHERE gc.id = $1 AND gc.is_deleted = false`,
+          [apiItem.id]
+        );
+        expect(dbRes.rows.length).toBe(1);
+        expect(apiItem.id).toBe(dbRes.rows[0].id);
+        expect(apiItem.name).toBe(dbRes.rows[0].name);
+        expect(apiItem.sort_order).toBe(dbRes.rows[0].sort_order);
+        expect(apiItem.gift_count).toBe(dbRes.rows[0].gift_count);
+      }
+    });
+  });
 });

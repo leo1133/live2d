@@ -140,3 +140,25 @@ test.describe('API Login Suite: Kiểm tra Server & Security', () => {
   });
 
 });
+
+test.describe("Database Verification (API vs DB) - AA000", () => {
+  let isDbAvailable = false;
+
+  test.beforeAll(async () => {
+    const { DBHelper } = await import("../../src/utils/db.helper.js");
+    isDbAvailable = await DBHelper.isConnected();
+  });
+
+  test("TC_DB01: Tài khoản Admin đăng nhập tồn tại hợp lệ và active trong bảng users", async ({ db }) => {
+    test.skip(!isDbAvailable, "⚠️ Bỏ qua DB tests: Database offline");
+    const email = loginData.apiCredentials.email;
+    const res = await db.query(
+      "SELECT id, email, is_superuser, status, is_deleted FROM users WHERE email = $1 AND is_deleted = false",
+      [email]
+    );
+    expect(res.rows.length).toBe(1);
+    expect(res.rows[0].email).toBe(email);
+    expect(res.rows[0].is_superuser).toBe(true);
+    expect(res.rows[0].is_deleted).toBe(false);
+  });
+});

@@ -208,3 +208,40 @@ test.describe("AD301_Agency Information - Backend API Automation Tests (91 Viewp
     });
   }
 });
+
+test.describe("Database Verification (API vs DB) - AD301", () => {
+  let isDbAvailable = false;
+
+  test.beforeAll(async () => {
+    const { DBHelper } = await import("../../src/utils/db.helper.js");
+    isDbAvailable = await DBHelper.isConnected();
+  });
+
+  test("TC_DB01: Đồng bộ chi tiết Agency giữa GET /agency/{id}/ và bảng agency + users", async ({ authenticatedRequest, db }) => {
+    test.skip(!isDbAvailable, "⚠️ Bỏ qua DB tests: Database offline");
+    const dbPick = await db.query(
+      `SELECT a.id, a.name, a.agency_code, a.status, a.contact_name, a.contact_phone, u.email AS owner_email
+       FROM agency a
+       LEFT JOIN users u ON a.owner_id = u.id
+       WHERE a.is_deleted = false AND a.deleted_at IS NULL
+       ORDER BY a.id DESC LIMIT 1`
+    );
+    expect(dbPick.rows.length).toBe(1);
+    const dbItem = dbPick.rows[0];
+
+    const api = new AD301AgencyAPI(authenticatedRequest);
+    const res = await api.getAgencyDetail(dbItem.id);
+    expect(res.status()).toBe(200);
+    const apiItem = await res.json();
+
+    expect(apiItem.id).toBe(dbItem.id);
+    expect(apiItem.name).toBe(dbItem.name);
+    expect(apiItem.agency_code).toBe(dbItem.agency_code);
+    expect(apiItem.status).toBe(dbItem.status);
+    expect(apiItem.contact_name).toBe(dbItem.contact_name);
+    expect(apiItem.contact_phone).toBe(dbItem.contact_phone);
+    if (dbItem.owner_email) {
+      expect(apiItem.contact_email).toBe(dbItem.owner_email);
+    }
+  });
+});

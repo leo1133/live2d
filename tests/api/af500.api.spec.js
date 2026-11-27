@@ -26,4 +26,29 @@ test.describe("API AF500: GIFT Animation Type (演出種類)", () => {
       expect(tc.expectedStatus).toContain(res.status());
     });
   }
+
+  test.describe("Database Verification (API vs DB) - AF500", () => {
+    let isDbAvailable = false;
+
+    test.beforeAll(async () => {
+      const { DBHelper } = await import("../../src/utils/db.helper.js");
+      isDbAvailable = await DBHelper.isConnected();
+    });
+
+    test("TC_DB01: Đồng bộ Total Count theo từng animation_type (1, 2, 3) giữa API và bảng gifts", async ({ authenticatedRequest, db }) => {
+      test.skip(!isDbAvailable, "⚠️ Bỏ qua DB tests: Database offline");
+      const api = new AF500AnimationTypeAPI(authenticatedRequest);
+      for (const animType of [1, 2, 3]) {
+        const res = await api.getGiftList({ queryParams: { animation_type: animType, page: 1, items_per_page: 10 } });
+        expect(res.status()).toBe(200);
+        const body = await res.json();
+
+        const dbCount = await db.query(
+          "SELECT COUNT(*)::int AS cnt FROM gifts WHERE animation_type = $1 AND is_deleted = false AND deleted_at IS NULL",
+          [animType]
+        );
+        expect(body.total_count).toBe(dbCount.rows[0].cnt);
+      }
+    });
+  });
 });

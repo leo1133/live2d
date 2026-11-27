@@ -363,5 +363,35 @@ test.describe("API Limited Gacha (期間限定アバターガチャ)", () => {
       expect([HTTP_STATUS_CODE.BAD_REQUEST, HTTP_STATUS_CODE.NOT_FOUND, HTTP_STATUS_CODE.UNPROCESSABLE_ENTITY]).toContain(response.status());
     });
   });
+
+  test.describe("Database Verification (API vs DB) - AQ201", () => {
+    let isDbAvailable = false;
+
+    test.beforeAll(async () => {
+      const { DBHelper } = await import("../../src/utils/db.helper.js");
+      isDbAvailable = await DBHelper.isConnected();
+    });
+
+    test("TC_DB01: Đồng bộ thông số Package & số lượng Items Limited Gacha giữa API và DB", async ({ authenticatedRequest, db }) => {
+      test.skip(!isDbAvailable, "⚠️ Bỏ qua DB tests: Database offline");
+      const gachaApi = new GachaLimitedAPI(authenticatedRequest);
+      const dbPkg = await db.query(
+        "SELECT id, three_d_model_id, package_type, soft_pity, hard_pity FROM model_gacha_packages WHERE id = $1 AND is_deleted = false",
+        [packageId]
+      );
+      if (dbPkg.rows.length === 0) return;
+
+      const itemsRes = await gachaApi.getPackageItems({ packageId });
+      expect(itemsRes.status()).toBe(200);
+      const itemsBody = await itemsRes.json();
+      const apiItems = Array.isArray(itemsBody) ? itemsBody : (itemsBody.data || itemsBody.items || []);
+
+      const dbItemsCount = await db.query(
+        "SELECT COUNT(*)::int AS cnt FROM model_gacha_items WHERE model_gacha_package_id = $1 AND is_deleted = false AND deleted_at IS NULL",
+        [packageId]
+      );
+      expect(apiItems.length).toBe(dbItemsCount.rows[0].cnt);
+    });
+  });
 });
 
